@@ -70,6 +70,7 @@ static char **my_environ;
 #undef environ
 #define environ my_environ
 #elif defined(__APPLE__)
+#include <crt_externs.h>
 #undef environ
 #define environ (*_NSGetEnviron())
 #define GET_ENVIRON(e) (e)
