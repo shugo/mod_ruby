@@ -1,3 +1,8 @@
+Sun Aug  8 07:41:03 2004  Shugo Maeda <shugo@modruby.net>
+
+	* mod_ruby.c (ruby_child_init): added new handler
+	RubyChildInitHandler.
+
 Fri Jul 16 17:19:01 2004  Shugo Maeda <shugo@modruby.net>
 
 	* mod_ruby.c (ruby_startup): cast NULL correctly.
