@@ -63,10 +63,22 @@
 #include <mach-o/dyld.h>
 #endif
 
-#ifndef WIN32
+#ifdef _WIN32
+#define GET_ENVIRON(e) (e = rb_w32_get_environ())
+#define FREE_ENVIRON(e) rb_w32_free_environ(e)
+static char **my_environ;
+#undef environ
+#define environ my_environ
+#elif defined(__APPLE__)
+#undef environ
+#define environ (*_NSGetEnviron())
+#define GET_ENVIRON(e) (e)
+#define FREE_ENVIRON(e)
+#else
 extern char **environ;
-static char **origenviron;
-#endif /* WIN32 */
+#define GET_ENVIRON(e) (e)
+#define FREE_ENVIRON(e)
+#endif
 
 RUBY_EXTERN VALUE ruby_errinfo;
 RUBY_EXTERN VALUE rb_stdin;
@@ -644,10 +656,6 @@ static void ruby_init_interpreter(server_rec *s)
     rb_define_global_const("MOD_RUBY",
 			   STRING_LITERAL(MOD_RUBY_STRING_VERSION));
 
-#ifndef WIN32
-    origenviron = environ;
-#endif /* WIN32 */
-
     orig_stdin = rb_stdin;
     orig_stdout = rb_stdout;
 #if RUBY_VERSION_CODE < 180
@@ -889,46 +897,28 @@ static void ruby_child_init(server_rec *s, pool *p)
 		 rb_intern("child_init"), 0, 0);
 }
 
-static void mod_ruby_clearenv()
+static void mod_ruby_clearenv(pool *p)
 {
-#ifdef WIN32
-    char *orgp, *p;
-
-    orgp = p = GetEnvironmentStrings();
-
-    if (p == NULL)
-	return;
-
-    while (*p) {
-	char buf[1024];
-	char *q;
-
-	strncpy(buf, p, sizeof buf);
-	q = strchr(buf, '=');
-	if (q)
-	    *(q+1) = '\0';
-
-	putenv(buf);
-	p += strlen(p) + 1;
+    char **env;
+    array_header *names = ap_make_array(p, 1, sizeof(char*));
+    int i;
+    
+    env = GET_ENVIRON(environ);
+    while (*env) {
+        char *s = strchr(*env, '=');
+        if (s) {
+            *(char **) ap_push_array(names) = ap_pstrndup(p, *env, s - *env);
+        }
+        env++;
     }
-
-    FreeEnvironmentStrings(orgp);
-#else
-#ifndef __CYGWIN__
-    if (environ == origenviron) {
-	environ = ALLOC_N(char*, 1);
-    }
-    else {
-	char **p;
-
-	for (p = environ; *p; p++) {
-	    if (*p) free(*p);
+    FREE_ENVIRON(environ);
+    for (i = 0; i < names->nelts; i++) {
+	char *name = ((char **) names->elts)[i];
+	char *val = getenv(name);
+	if (val) {
+	    ruby_unsetenv(name);
 	}
-	REALLOC_N(environ, char*, 1);
     }
-    *environ = NULL;
-#endif
-#endif
 }
 
 static void mod_ruby_setenv(const char *name, const char *value)
@@ -961,7 +951,7 @@ void rb_setup_cgi_env(request_rec *r)
     ruby_server_config *sconf = get_server_config(r->server);
     ruby_dir_config *dconf = get_dir_config(r);
 
-    mod_ruby_clearenv();
+    mod_ruby_clearenv(r->pool);
     ap_add_common_vars(r);
     ap_add_cgi_vars(r);
     setenv_from_table(r->subprocess_env);

@@ -1,3 +1,7 @@
+Sun Sep 19 02:16:26 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* mod_ruby.c (mod_ruby_clearenv): use ruby_unsetenv().
+
 Sat Sep 11 01:21:17 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* request.c (request_send_fd): fixed a bug really.
