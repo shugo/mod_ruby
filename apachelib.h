@@ -71,6 +71,10 @@ VALUE rb_apache_request_send_http_header(VALUE self);
 void rb_apache_request_flush(VALUE request);
 void rb_apache_request_set_error(VALUE request, VALUE error, VALUE exception);
 
+/* bucket.c */
+extern VALUE rb_cApacheBucket;
+void rb_init_apache_bucket();
+
 /* --- Libapreq Extensions ------------------------------  */
 
 extern VALUE rb_eApacheRequestError;
