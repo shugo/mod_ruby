@@ -552,7 +552,8 @@ static int ruby_startup(pool *p, pool *plog, pool *ptemp, server_rec *s)
 #if RUBY_RELEASE_CODE > 20040624
     {
         char *version = apr_pstrcat(p, "Ruby/", ruby_version,
-                                    "(", ruby_release_date, ")", NULL);
+                                    "(", ruby_release_date, ")",
+				    (char *) NULL);
         ap_add_version_component(p, version);
     }
 #endif
@@ -567,7 +568,8 @@ static void ruby_startup(server_rec *s, pool *p)
 #if RUBY_RELEASE_CODE > 20040624
     {
         char *version = ap_pstrcat(p, "Ruby/", ruby_version,
-                                   "(", ruby_release_date, ")", NULL);
+                                   "(", ruby_release_date, ")",
+				   (char *) NULL);
         ap_add_version_component(version);
     }
 #endif

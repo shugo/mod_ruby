@@ -1,3 +1,7 @@
+Fri Jul 16 17:19:01 2004  Shugo Maeda <shugo@modruby.net>
+
+	* mod_ruby.c (ruby_startup): cast NULL correctly.
+
 Thu Jul 15 22:11:33 2004  Shugo Maeda <shugo@modruby.net>
 
 	* mod_ruby.c (ruby_object_handler): check r->handler.
