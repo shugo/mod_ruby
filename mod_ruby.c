@@ -1095,6 +1095,7 @@ static void per_request_cleanup(request_rec *r, int flush)
 #endif
     }
     rb_set_kcode(default_kcode);
+    rb_gc();
 }
 
 typedef struct handler_0_arg {

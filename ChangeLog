@@ -1,3 +1,7 @@
+Sat Sep 25 12:58:27 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* mod_ruby.c (per_request_cleanup): call rb_gc().
+
 Fri Sep 24 03:45:52 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* included libapreq.
