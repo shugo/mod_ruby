@@ -135,11 +135,16 @@ static APR_CLEANUP_RETURN_TYPE cleanup_request_object(void *data)
     }
     ap_set_module_config(r->request_config, &ruby_module, 0);
 #if APR_HAS_THREADS
-    ruby_call_interpreter(r->pool,
-			  (ruby_interp_func_t) rb_apache_unregister_object,
-			  (void *) reqobj, NULL, 0);
-#else
-    rb_apache_unregister_object(reqobj);
+    if (ruby_is_threaded_mpm) {
+	ruby_call_interpreter(r->pool,
+			      (ruby_interp_func_t) rb_apache_unregister_object,
+			      (void *) reqobj, NULL, 0);
+    }
+    else {
+#endif
+	rb_apache_unregister_object(reqobj);
+#if APR_HAS_THREADS
+    }
 #endif
     APR_CLEANUP_RETURN_SUCCESS();
 }
@@ -1619,10 +1624,15 @@ static VALUE call_proc_0(VALUE proc)
 static void call_proc(pool *p, VALUE proc)
 {
 #if APR_HAS_THREADS
-    ruby_call_interpreter(p, (ruby_interp_func_t) call_proc_0,
-			  (void *) proc, NULL, 0);
-#else
-    call_proc_0(proc);
+    if (ruby_is_threaded_mpm) {
+	ruby_call_interpreter(p, (ruby_interp_func_t) call_proc_0,
+			      (void *) proc, NULL, 0);
+    }
+    else {
+#endif
+	call_proc_0(proc);
+#if APR_HAS_THREADS
+    }
 #endif
 }
 

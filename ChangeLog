@@ -1,3 +1,7 @@
+Thu Aug 19 01:21:25 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* mod_ruby.c: do not use threads on prefork MPM.
+
 Sat Aug 14 07:35:14 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* examples/ChangeLog: `Options ExecCGI' -> `Options +ExecCGI'.

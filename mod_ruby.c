@@ -98,6 +98,8 @@ static apr_thread_cond_t *ruby_is_running_cond;
 static apr_thread_mutex_t *ruby_request_queue_mutex;
 static apr_thread_cond_t *ruby_request_queue_cond;
 
+int ruby_is_threaded_mpm;
+
 typedef VALUE (*ruby_protect_func_t)(VALUE);
 
 typedef struct ruby_request {
@@ -564,6 +566,9 @@ static int ruby_startup(pool *p, pool *plog, pool *ptemp, server_rec *s)
         ap_add_version_component(p, version);
     }
 #endif
+#if APR_HAS_THREADS
+    ruby_is_threaded_mpm = ap_find_linked_module("prefork.c") == NULL;
+#endif
     return OK;
 }
 
@@ -773,24 +778,29 @@ apr_status_t ruby_call_interpreter(pool *p, ruby_interp_func_t func,
 static APR_CLEANUP_RETURN_TYPE ruby_child_cleanup(void *data)
 {
 #if APR_HAS_THREADS
-    pool *p;
-    apr_status_t status, result;
+    if (ruby_is_threaded_mpm) {
+	pool *p;
+	apr_status_t status, result;
 
 #ifdef SIGTERM
-    ruby_signal(SIGTERM, SIG_IGN);
+	ruby_signal(SIGTERM, SIG_IGN);
 #endif
-    status = apr_pool_create(&p, NULL);
-    if (status != APR_SUCCESS)
+	status = apr_pool_create(&p, NULL);
+	if (status != APR_SUCCESS)
+	    return status;
+	status = ruby_call_interpreter(p, SHUTDOWN_RUBY_THREAD, NULL, NULL, NULL);
+	apr_pool_clear(p);
+	if (status != APR_SUCCESS)
+	    return status;
+	status = apr_thread_join(&result, ruby_thread);
 	return status;
-    status = ruby_call_interpreter(p, SHUTDOWN_RUBY_THREAD, NULL, NULL, NULL);
-    apr_pool_clear(p);
-    if (status != APR_SUCCESS)
-	return status;
-    status = apr_thread_join(&result, ruby_thread);
-    return status;
-#else
-    ruby_finalize_interpreter();
-    APR_CLEANUP_RETURN_SUCCESS();
+    }
+    else {
+#endif
+	ruby_finalize_interpreter();
+	APR_CLEANUP_RETURN_SUCCESS();
+#if APR_HAS_THREADS
+    }
 #endif
 }
 
@@ -819,47 +829,52 @@ static void ruby_child_init(server_rec *s, pool *p)
 
     if (!ruby_running()) {
 #if APR_HAS_THREADS
-	apr_status_t status;
-	status = apr_thread_mutex_create(&ruby_is_running_mutex,
-					 APR_THREAD_MUTEX_DEFAULT, p);
-	if (status != APR_SUCCESS) {
-	    ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
-			   "failed to create mutex");
-	    return;
+	if (ruby_is_threaded_mpm) {
+	    apr_status_t status;
+	    status = apr_thread_mutex_create(&ruby_is_running_mutex,
+					     APR_THREAD_MUTEX_DEFAULT, p);
+	    if (status != APR_SUCCESS) {
+		ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
+			       "failed to create mutex");
+		return;
+	    }
+	    status = apr_thread_cond_create(&ruby_is_running_cond, p);
+	    if (status != APR_SUCCESS) {
+		ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
+			       "failed to create cond");
+		return;
+	    }
+	    status = apr_thread_mutex_create(&ruby_request_queue_mutex,
+					     APR_THREAD_MUTEX_DEFAULT, p);
+	    if (status != APR_SUCCESS) {
+		ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
+			       "failed to create mutex");
+		return;
+	    }
+	    status = apr_thread_cond_create(&ruby_request_queue_cond, p);
+	    if (status != APR_SUCCESS) {
+		ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
+			       "failed to create cond");
+		return;
+	    }
+	    status = apr_thread_create(&ruby_thread, NULL, ruby_thread_start, s, p);
+	    if (status != APR_SUCCESS) {
+		ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
+			       "failed to create ruby thread");
+		return;
+	    }
+	    apr_thread_mutex_lock(ruby_is_running_mutex);
+	    while (!ruby_running())
+		apr_thread_cond_wait(ruby_is_running_cond,
+				     ruby_is_running_mutex);
+	    apr_thread_mutex_unlock(ruby_is_running_mutex);
 	}
-	status = apr_thread_cond_create(&ruby_is_running_cond, p);
-	if (status != APR_SUCCESS) {
-	    ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
-			   "failed to create cond");
-	    return;
+	else {
+#endif
+	    ruby_init_interpreter(s);
+	    ruby_is_running = 1;
+#if APR_HAS_THREADS
 	}
-	status = apr_thread_mutex_create(&ruby_request_queue_mutex,
-					 APR_THREAD_MUTEX_DEFAULT, p);
-	if (status != APR_SUCCESS) {
-	    ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
-			   "failed to create mutex");
-	    return;
-	}
-	status = apr_thread_cond_create(&ruby_request_queue_cond, p);
-	if (status != APR_SUCCESS) {
-	    ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
-			   "failed to create cond");
-	    return;
-	}
-	status = apr_thread_create(&ruby_thread, NULL, ruby_thread_start, s, p);
-	if (status != APR_SUCCESS) {
-	    ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
-			   "failed to create ruby thread");
-	    return;
-	}
-	apr_thread_mutex_lock(ruby_is_running_mutex);
-	while (!ruby_running())
-	    apr_thread_cond_wait(ruby_is_running_cond,
-		    		 ruby_is_running_mutex);
-	apr_thread_mutex_unlock(ruby_is_running_mutex);
-#else
-	ruby_init_interpreter(s);
-	ruby_is_running = 1;
 #endif
 	ap_register_cleanup(p, NULL, ruby_child_cleanup, ap_null_cleanup);
     }
@@ -1196,13 +1211,14 @@ static int ruby_handler(request_rec *r,
     arg->flush = flush;
     arg->retval = 0;
 #if APR_HAS_THREADS
-    {
+    if (ruby_is_threaded_mpm) {
 	apr_status_t status;
 	char buf[256];
 
-	status = ruby_call_interpreter(r->pool,
-				       (ruby_interp_func_t) ruby_handler_internal,
-				       arg, NULL, 0);
+	status =
+	    ruby_call_interpreter(r->pool,
+				  (ruby_interp_func_t) ruby_handler_internal,
+				  arg, NULL, 0);
 	if (status != APR_SUCCESS) {
 	    apr_strerror(status, buf, sizeof(buf));
 	    ruby_log_error(APLOG_MARK, APLOG_ERR | APLOG_NOERRNO, r->server,
@@ -1210,8 +1226,11 @@ static int ruby_handler(request_rec *r,
 	    return HTTP_INTERNAL_SERVER_ERROR;
 	}
     }
-#else
-    ruby_handler_internal(arg);
+    else {
+#endif
+	ruby_handler_internal(arg);
+#if APR_HAS_THREADS
+    }
 #endif
     return arg->retval;
 }

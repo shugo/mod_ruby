@@ -174,6 +174,8 @@ void mod_ruby_setup_loadpath(ruby_server_config *sconf,
 #if APR_HAS_THREADS
 typedef void *(*ruby_interp_func_t)(void*);
 
+extern int ruby_is_threaded_mpm;
+
 apr_status_t ruby_call_interpreter(pool *p, ruby_interp_func_t func,
 				   void *arg, void **result, int *state);
 #endif

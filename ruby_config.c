@@ -234,7 +234,7 @@ static void ruby_require(pool *p, char *filename,
     arg->sconf = sconf;
     arg->dconf = dconf;
 #if APR_HAS_THREADS
-    {
+    if (ruby_is_threaded_mpm) {
 	apr_status_t status;
 	char buf[256];
 
@@ -247,8 +247,11 @@ static void ruby_require(pool *p, char *filename,
 			   "ruby_call_interpreter() failed: %s", buf);
 	}
     }
-#else
-    ruby_require_internal(arg);
+    else {
+#endif
+	ruby_require_internal(arg);
+#if APR_HAS_THREADS
+    }
 #endif
 }
 
