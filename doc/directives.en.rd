@@ -24,6 +24,7 @@
 * ((<RubyTimeOut|RubyTimeOut sec>))
 * ((<RubySafeLevel|RubySafeLevel level>))
 * ((<RubyOutputMode|RubyOutputMode mode>))
+* ((<RubyRestrictDirectives|RubyRestrictDirectives flag>))
 * ((<RubyKanjiCode|RubyKanjiCode kcode>))
 
 --- RubyAddPath directory...
@@ -257,6 +258,19 @@
       example:
 
         RubyOutputMode syncheader
+
+--- RubyRestrictDirectives flag
+      Specifies whether all the other Ruby* directives (like
+      RubyHandler, RubySetEnv, etc.) are restricted from being
+      specified in .htaccess files. Default is (({off})). Setting this
+      to (({on})) can be useful in some multi-user situations
+      (e.g. shared webhosting), in which the server admin wants to use
+      mod_ruby but does not want to allow normal users to get access
+      to it. Only available in server config.
+
+      example:
+
+        RubyRestrictDirectives on
 
 --- RubyKanjiCode kcode
       Specifies the value of ((|$KCODE|)).

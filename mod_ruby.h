@@ -133,6 +133,7 @@ typedef struct {
     table *env;
     int timeout;
     array_header *ruby_child_init_handler;
+    int restrict_directives;
 } ruby_server_config;
 
 typedef struct {
@@ -163,6 +164,7 @@ typedef struct {
 
 #define MR_DEFAULT_TIMEOUT 270
 #define MR_DEFAULT_SAFE_LEVEL 1
+#define MR_DEFAULT_RESTRICT_DIRECTIVES 0
 
 #define MR_OUTPUT_DEFAULT	0
 #define MR_OUTPUT_NOSYNC	1

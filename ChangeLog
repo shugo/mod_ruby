@@ -1,3 +1,8 @@
+Fri Nov 19 15:24:40 2004  Shugo Maeda  <shugo@ruby-lang.org>
+
+	* ruby_config.c (ruby_cmd_restrict_directives): added new directive
+	RubyRestrictDirectives. Thanks, David Garamond.
+
 Fri Oct 15 02:09:58 2004  Shugo Maeda  <shugo@ruby-lang.org>
 
 	* request.c (request_get_client_block): return nil if EOF.
