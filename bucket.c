@@ -129,15 +129,17 @@ static VALUE bucket_is_immortal(VALUE self)
     return APR_BUCKET_IS_IMMORTAL(b) ? Qtrue : Qfalse;
 }
 
-#if APR_HAS_MMAP
 static VALUE bucket_is_mmap(VALUE self)
 {
+#if APR_HAS_MMAP
     apr_bucket *b;
 
     Data_Get_Struct(self, apr_bucket, b);
     return APR_BUCKET_IS_MMAP(b) ? Qtrue : Qfalse;
-}
+#else
+    return Qfalse;
 #endif
+}
 
 static VALUE bucket_is_pool(VALUE self)
 {
@@ -161,9 +163,7 @@ void rb_init_apache_bucket()
     rb_define_method(rb_cApacheBucket, "heap?", bucket_is_heap, 0);
     rb_define_method(rb_cApacheBucket, "transient?", bucket_is_transient, 0);
     rb_define_method(rb_cApacheBucket, "immortal?", bucket_is_immortal, 0);
-#if APR_HAS_MMAP
     rb_define_method(rb_cApacheBucket, "mmap?", bucket_is_mmap, 0);
-#endif
     rb_define_method(rb_cApacheBucket, "pool?", bucket_is_pool, 0);
 }
 
