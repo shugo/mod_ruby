@@ -98,7 +98,9 @@ module Apache
     def compile(filename)
       open(filename) do |f|
 	@compiler.sourcefile = filename
-	return @compiler.compile_file(f)
+	code = @compiler.compile_file(f)
+        code.untaint
+        return code
       end
     end
 

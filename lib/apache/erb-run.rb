@@ -124,7 +124,9 @@ module Apache
 
     def compile(filename)
       open(filename) do |f|
-	return @compiler.compile(f.read)
+        code = @compiler.compile(f.read)
+        code.untaint
+        return code
       end
     end
 

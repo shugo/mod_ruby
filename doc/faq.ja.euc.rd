@@ -158,7 +158,7 @@ mod_rubyではデフォルトの(({$SAFE}))の値は(({1}))になるため、
 汚染された文字列を浄化してやることでSecurityErrorを回避できます。
 
   query = CGI.new
-  filename = query["filename"]
+  filename = query.params["filename"][0].dup
   filename.untaint
   file = open(filename)
 

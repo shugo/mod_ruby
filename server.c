@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.14 2003/07/08 01:17:48 shugo Exp $
+ * $Id: server.c,v 1.15 2004/06/19 02:49:47 chroottest Exp $
  * Copyright (C) 2001  Shugo Maeda <shugo@modruby.net>
  * All rights reserved.
  *
@@ -252,3 +252,10 @@ void rb_init_apache_server()
     rb_define_method(rb_cApacheServer, "document_root",
 		     server_document_root, 0);
 }
+
+/*
+ * Local variables:
+ * mode: C
+ * tab-width: 8
+ * End:
+ */

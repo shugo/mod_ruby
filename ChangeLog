@@ -1,3 +1,15 @@
+Fri May 21 00:30:40 2004  Shugo Maeda <shugo@modruby.net>
+
+	* lib/apache/erb-run.rb (compile): untaint generated codes.
+
+	* lib/apache/eruby-run.rb (compile): ditto.
+
+Mon May 17 11:36:51 2004  Shugo Maeda <shugo@modruby.net>
+
+	* doc/faq.en.rd: fix for cgi.rb.
+
+	* doc/faq.ja.euc.rd: ditto.
+
 Thu May 13 14:49:33 2004  Shugo Maeda <shugo@modruby.net>
 
 	* version 1.2.0 released.
@@ -311,7 +323,7 @@ Fri Aug 23 12:06:53 2002  Shugo Maeda <shugo@modruby.net>
 Fri Aug 23 12:02:11 2002  Eugene Scripnik <Eugene.Scripnik@itgrp.net>
 	
 	* lib/auto-reload.rb (require): fix for the behaviour of nil on
-<	ruby-1.7.2.
+	ruby-1.7.2.
 
 Tue Aug 20 12:56:25 2002  Shugo Maeda <shugo@modruby.net>
 

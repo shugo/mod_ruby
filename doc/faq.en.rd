@@ -156,7 +156,7 @@ so dangerous operations with tainted string cause a SecurityError.
 If it is certain that the operation is secure, use (({untaint})).
 
   query = CGI.new
-  filename = query["filename"]
+  filename = query.params["filename"][0].dup
   filename.untaint
   file = open(filename)
 

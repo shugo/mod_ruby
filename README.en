@@ -19,8 +19,7 @@ You can use Apache 2.0 also, but there are some restrictions.
 * You should build mod_ruby as a DSO module. (Please use --with-apxs
   option instead of --with-apache option when running configure.rb.)
 * Some methods are not implemented for Apache 2.0 because Apache 2.0
-  API is different from Apache 1.x API. (mod_ruby 1.1 series will
-  support only Apache 2.0 and will provide new API.)
+  API is different from Apache 1.x API.
 
 == Installation
 
@@ -37,7 +36,7 @@ You can use Apache 2.0 also, but there are some restrictions.
 
 == Official Web Site
 
-((<URL:http://www.modruby.net/>))
+((<URL:http://modruby.net/>))
 
 =end
 
