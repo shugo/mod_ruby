@@ -39,6 +39,9 @@ void rb_init_apache();
 void rb_apache_exit(int status);
 VALUE rb_apache_register_object(VALUE obj);
 VALUE rb_apache_unregister_object(VALUE obj);
+#ifdef APACHE2
+void rb_apr_fail(apr_status_t status);
+#endif
 
 /* array_header.c */
 extern VALUE rb_cApacheArrayHeader;

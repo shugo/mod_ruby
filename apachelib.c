@@ -36,8 +36,12 @@
 #include "apachelib.h"
 
 VALUE rb_mApache;
+VALUE rb_eApacheError;
 VALUE rb_eApacheTimeoutError;
 VALUE rb_eApacheRequestError;
+#ifdef APACHE2
+VALUE rb_eApacheAprError;
+#endif
 
 VALUE rb_request;
 VALUE rb_apache_objrefs;
@@ -163,6 +167,23 @@ static VALUE apache_server_root(VALUE self)
     return rb_str_new2(ap_server_root);
 }
 
+#ifdef APACHE2
+void rb_apr_fail(apr_status_t status)
+{
+    char buf[BUFSIZ];
+    VALUE error;
+
+    apr_strerror(status, buf, sizeof(buf)); 
+    error = rb_exc_new2(rb_eApacheAprError, buf);
+    rb_iv_set(error, "errno", INT2NUM(status));
+}
+
+static VALUE apr_error_errno(VALUE self)
+{
+    return rb_iv_get(self, "errno");
+}
+#endif
+
 void rb_init_apache()
 {
     rb_request = Qnil;
@@ -182,9 +203,6 @@ void rb_init_apache()
     rb_define_module_function(rb_mApache, "unescape_url", apache_unescape_url, 1);
     rb_define_module_function(rb_mApache, "chdir_file", apache_chdir_file, 1);
     rb_define_module_function(rb_mApache, "server_root", apache_server_root, 0);
-
-    rb_eApacheTimeoutError =
-	rb_define_class_under(rb_mApache, "TimeoutError", rb_eException);
 
     rb_define_const(rb_mApache, "DECLINED", INT2NUM(DECLINED));
     rb_define_const(rb_mApache, "DONE", INT2NUM(DONE));
@@ -383,20 +401,30 @@ void rb_init_apache()
 		    INT2NUM(REQUEST_CHUNKED_PASS));
 #endif
 
+    rb_eApacheError =
+	rb_define_class_under(rb_mApache, "Error", rb_eStandardError);
+    rb_eApacheTimeoutError =
+	rb_define_class_under(rb_mApache, "TimeoutError", rb_eApacheError);
+    rb_eApacheRequestError = 
+	rb_define_class_under(rb_mApache, "RequestError", rb_eApacheError);
+#ifdef APACHE2
+    rb_eApacheAprError = 
+	rb_define_class_under(rb_mApache, "AprError", rb_eApacheError);
+    rb_define_method(rb_eApacheAprError, "errno", apr_error_errno, 0);
+#endif
+
     rb_init_apache_array();
     rb_init_apache_table();
     rb_init_apache_connection();
     rb_init_apache_server();
     rb_init_apache_request();
-
-    rb_eApacheRequestError = 
-	rb_define_class_under(rb_mApache, "RequestError", rb_eException);
-
     rb_init_apache_multival();
     rb_init_apache_paramtable();
     rb_init_apache_upload();
     rb_init_apache_cookie();
-
+#ifdef APACHE2
+    rb_init_apache_bucket();
+#endif
 }
 
 /*

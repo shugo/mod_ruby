@@ -157,14 +157,23 @@ static VALUE bucket_read(int argc, VALUE *argv, VALUE self)
     apr_status_t status;
     apr_read_type_e read_type = APR_BLOCK_READ;
 
-    if (rb_scan_args(argc, argv, "11", &length, &block) == 2) {
+    Data_Get_Struct(self, apr_bucket, b);
+    rb_scan_args(argc, argv, "02", &length, &block);
+    if (NIL_P(length)) {
+	if (b->length == (apr_size_t) -1) {
+	    rb_raise(rb_eArgError, "length is necessary");
+	}
+	len = b->length;
+    }
+    else {
+	len = NUM2ULONG(length);
+    }
+    if (!NIL_P(block)) {
 	read_type = RTEST(block) ? APR_BLOCK_READ : APR_NONBLOCK_READ;
     }
-    Data_Get_Struct(self, apr_bucket, b);
-    len = NUM2ULONG(length);
     status = apr_bucket_read(b, &str, &len, read_type);
     if (status != APR_SUCCESS) {
-	rb_raise(rb_eRuntimeError, "error");
+	rb_apr_fail(status);
     }
     return rb_str_new(str, len);
 }

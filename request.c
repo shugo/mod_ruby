@@ -871,14 +871,25 @@ static VALUE request_should_client_block(VALUE self)
 static VALUE request_get_client_block(VALUE self, VALUE length)
 {
     request_data *data;
-    char *buf;
     int len;
+    VALUE result;
 
     data = get_request_data(self);
     len = NUM2INT(length);
-    buf = (char *) ap_palloc(data->request->pool, len);
-    len = ap_get_client_block(data->request, buf, len);
-    return rb_tainted_str_new(buf, len);
+    result = rb_str_buf_new(len);
+    len = ap_get_client_block(data->request, RSTRING(result)->ptr, len);
+    switch (len) {
+    case -1:
+	rb_raise(rb_eApachePrematureChunkEndError, "premature chunk end");
+	break;
+    case 0:
+	return Qnil;
+    default:
+	RSTRING(result)->ptr[len] = '\0';
+	RSTRING(result)->len = len;
+	OBJ_TAINT(result);
+	return result;
+    }
 }
 
 static VALUE read_client_block(request_rec *r, int len)
