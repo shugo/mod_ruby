@@ -114,12 +114,6 @@ module Apache
       <tr><td headers="error">
         #{err}
       </td></tr>
-      <tr><th id="code">
-       GENERATED CODE
-      </th></tr>
-      <tr><td headers="code">
-       <pre><code>#{CGI::escapeHTML(code)}</code></pre>
-      </td></tr>
     </table>
   </body>
 </html>

@@ -43,6 +43,7 @@
 #include "rubyio.h"
 #include "version.h"
 #include "util.h"
+#include "intern.h"
 
 #ifndef RUBY_EXTERN
 #define RUBY_EXTERN EXTERN
@@ -58,24 +59,17 @@
 #define SafeStringValue(v) Check_SafeStr(v)
 #endif
 
-#ifdef HAVE_LIBAPREQ 		/* Libapreq */
-/* Ruby includes */
-#include "intern.h"
-
-/* libapreq includes */
-#include "apache_request.h"
-#include "apache_multipart_buffer.h"
-#include "apache_cookie.h"
-#endif /* HAVE_LIBAPREQ */
-
 #ifdef STANDARD20_MODULE_STUFF /* Apache 2.x */
 
 #define APACHE2
 
 #include "ap_compat.h"
+#include "apr_lib.h"
 #include "apr_pools.h"
 #include "apr_strings.h"
 #include "apr_tables.h"
+
+#define ap_pool apr_pool_t
 
 typedef apr_pool_t pool;
 typedef apr_array_header_t array_header;
@@ -97,6 +91,39 @@ typedef apr_table_entry_t table_entry;
 #include "http_conf_globals.h"
 
 #endif
+
+/* libapreq */
+#define ApacheCookie_new mod_ruby_ApacheCookie_new
+#define ApacheCookie_parse mod_ruby_ApacheCookie_parse
+#define ApacheCookie_as_string mod_ruby_ApacheCookie_as_string
+#define ApacheCookie_attr mod_ruby_ApacheCookie_attr
+#define ApacheCookie_expires mod_ruby_ApacheCookie_expires
+#define ApacheCookie_bake mod_ruby_ApacheCookie_bake
+#define fill_buffer mod_ruby_fill_buffer
+#define multipart_buffer_new mod_ruby_multipart_buffer_new
+#define multipart_buffer_headers mod_ruby_multipart_buffer_headers
+#define multipart_buffer_read mod_ruby_multipart_buffer_read
+#define multipart_buffer_read_body mod_ruby_multipart_buffer_read_body
+#define multipart_buffer_eof mod_ruby_multipart_buffer_eof
+#define ApacheRequest_new mod_ruby_ApacheRequest_new
+#define ApacheRequest_parse_multipart mod_ruby_ApacheRequest_parse_multipart
+#define ApacheRequest_parse_urlencoded mod_ruby_ApacheRequest_parse_urlencoded
+#define ApacheRequest_script_name mod_ruby_ApacheRequest_script_name
+#define ApacheRequest_script_path mod_ruby_ApacheRequest_script_path
+#define ApacheRequest_param mod_ruby_ApacheRequest_param
+#define ApacheRequest_params mod_ruby_ApacheRequest_params
+#define ApacheRequest_params_as_string mod_ruby_ApacheRequest_params_as_string
+#define ApacheRequest___parse mod_ruby_ApacheRequest___parse
+#define ApacheRequest_query_params mod_ruby_ApacheRequest_query_params
+#define ApacheRequest_post_params mod_ruby_ApacheRequest_post_params
+#define ApacheRequest_tmpfile mod_ruby_ApacheRequest_tmpfile
+#define ApacheUpload_new mod_ruby_ApacheUpload_new
+#define ApacheUpload_find mod_ruby_ApacheUpload_find
+#define ApacheUtil_expires mod_ruby_ApacheUtil_expires
+#define ApacheRequest_expires mod_ruby_ApacheRequest_expires
+#include "apache_request.h"
+#include "apache_multipart_buffer.h"
+#include "apache_cookie.h"
 
 #define MOD_RUBY_STRING_VERSION "mod_ruby/1.2.2"
 #define RUBY_GATEWAY_INTERFACE "CGI-Ruby/1.1"

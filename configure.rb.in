@@ -100,40 +100,6 @@ else
   AC_MSG_RESULT("no")
 end
 
-$LIBAPREQ_OBJS = ""
-AC_MSG_CHECKING("for libapreq support")
-AC_ARG_WITH("libapreq",
-"  --with-libapreq                libapreq support") { |withval|
-  if withval == "no"
-    AC_MSG_RESULT("no")
-  else
-    AC_DEFINE("HAVE_LIBAPREQ")
-    $LIBS += " -lapreq"
-    $LIBAPREQ_OBJS = "upload.#{$OBJEXT} cookie.#{$OBJEXT} paramtable.#{$OBJEXT} multival.#{$OBJEXT}"
-    AC_MSG_RESULT("yes")
-  end
-}.if_not_given {
-  AC_MSG_RESULT("no")
-}
-
-$LIBAPREQ_INCLUDES = ""
-AC_ARG_WITH("libapreq-includes",
-"  --with-libapreq-includes[=DIR] where the libapreq header files live") { |withval|
-  $LIBAPREQ_INCLUDES = "-I" + withval
-}.if_not_given {
-  for dir in [ "/usr/local/include/libapreq", "/usr/include/libapreq" ]
-    if File.exist?(File.expand_path("apache_request.h", dir))
-      $LIBAPREQ_INCLUDES = "-I" + dir
-      break
-    end
-  end
-}
-
-AC_ARG_WITH("libapreq-libdir",
-"  --with-libapreq-libdir[=DIR]   where the libapreq libraries live") { |withval|
-  $XLDFLAGS += " -L#{withval}"
-}
-
 AC_ARG_WITH("apr-includes",
 	    "  --with-apr-includes=DIR     APR include files are in DIR") { |withval|
   $APACHE_INCLUDES += " -I#{withval}"

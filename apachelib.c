@@ -37,10 +37,7 @@
 
 VALUE rb_mApache;
 VALUE rb_eApacheTimeoutError;
-
-#ifdef HAVE_LIBAPREQ
 VALUE rb_eApacheRequestError;
-#endif
 
 VALUE rb_request;
 VALUE rb_apache_objrefs;
@@ -392,7 +389,6 @@ void rb_init_apache()
     rb_init_apache_server();
     rb_init_apache_request();
 
-#ifdef HAVE_LIBAPREQ
     rb_eApacheRequestError = 
 	rb_define_class_under(rb_mApache, "RequestError", rb_eException);
 
@@ -400,7 +396,6 @@ void rb_init_apache()
     rb_init_apache_paramtable();
     rb_init_apache_upload();
     rb_init_apache_cookie();
-#endif
 
 }
 

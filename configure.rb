@@ -9,9 +9,6 @@ $ac_help += "  --with-apache=DIR       Build static Apache module.  DIR is the p
                           to the top-level Apache source directory" "\n"
 $ac_help += "  --with-apxs[=FILE]      Build shared Apache module.  FILE is the optional
                           pathname to the Apache apxs tool; [apxs]" "\n"
-$ac_help += "  --with-libapreq                libapreq support" "\n"
-$ac_help += "  --with-libapreq-includes[=DIR] where the libapreq header files live" "\n"
-$ac_help += "  --with-libapreq-libdir[=DIR]   where the libapreq libraries live" "\n"
 $ac_help += "  --with-apr-includes=DIR     APR include files are in DIR" "\n"
 
 $ac_sed = {}
@@ -499,37 +496,6 @@ if $APXS
 else
   AC_MSG_RESULT("no")
 end
-
-$LIBAPREQ_OBJS = ""
-AC_MSG_CHECKING("for libapreq support")
-AC_WITH("libapreq") { |withval|
-  if withval == "no"
-    AC_MSG_RESULT("no")
-  else
-    AC_DEFINE("HAVE_LIBAPREQ")
-    $LIBS += " -lapreq"
-    $LIBAPREQ_OBJS = "upload.#{$OBJEXT} cookie.#{$OBJEXT} paramtable.#{$OBJEXT} multival.#{$OBJEXT}"
-    AC_MSG_RESULT("yes")
-  end
-}.if_not_given {
-  AC_MSG_RESULT("no")
-}
-
-$LIBAPREQ_INCLUDES = ""
-AC_WITH("libapreq-includes") { |withval|
-  $LIBAPREQ_INCLUDES = "-I" + withval
-}.if_not_given {
-  for dir in [ "/usr/local/include/libapreq", "/usr/include/libapreq" ]
-    if File.exist?(File.expand_path("apache_request.h", dir))
-      $LIBAPREQ_INCLUDES = "-I" + dir
-      break
-    end
-  end
-}
-
-AC_WITH("libapreq-libdir") { |withval|
-  $XLDFLAGS += " -L#{withval}"
-}
 
 AC_WITH("apr-includes") { |withval|
   $APACHE_INCLUDES += " -I#{withval}"

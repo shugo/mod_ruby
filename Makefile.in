@@ -83,7 +83,13 @@ OBJS		= mod_ruby.@OBJEXT@ \
 		  connection.@OBJEXT@ \
 		  server.@OBJEXT@ \
 		  request.@OBJEXT@ \
-		  @LIBAPREQ_OBJS@
+		  upload.@OBJEXT@ \
+		  cookie.@OBJEXT@ \
+		  paramtable.@OBJEXT@ \
+		  multival.@OBJEXT@ \
+		  apache_request.@OBJEXT@ \
+		  apache_multipart_buffer.@OBJEXT@ \
+		  apache_cookie.@OBJEXT@
 
 .c.@OBJEXT@:
 	$(CC) $(CFLAGS) -c $<
@@ -165,3 +171,11 @@ table.@OBJEXT@: table.c mod_ruby.h apachelib.h
 connection.@OBJEXT@: connection.c mod_ruby.h apachelib.h
 server.@OBJEXT@: server.c mod_ruby.h apachelib.h
 request.@OBJEXT@: request.c mod_ruby.h apachelib.h
+upload.@OBJEXT@: upload.c mod_ruby.h apachelib.h
+cookie.@OBJEXT@: cookie.c mod_ruby.h apachelib.h
+paramtable.@OBJEXT@: paramtable.c mod_ruby.h apachelib.h
+multival.@OBJEXT@: multival.c mod_ruby.h apachelib.h
+
+apache_request.@OBJEXT@: apache_request.c mod_ruby.h apache_request.h
+apache_multpart_buffer.@OBJEXT@: apache_multpart_buffer.c mod_ruby.h apache_request.h apache_multpart_buffer.h
+apache_cookie.@OBJEXT@: apache_cookie.c apache_cookie.h apache_request.h

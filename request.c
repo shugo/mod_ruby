@@ -41,11 +41,9 @@
 static VALUE rb_eApachePrematureChunkEndError;
 VALUE rb_cApacheRequest;
 
-#ifdef HAVE_LIBAPREQ
 /* Parse options */
 static ID id_post_max, id_disable_uploads,
     id_temp_dir, id_hook_data, id_upload_hook;
-#endif
 
 typedef struct request_data {
     request_rec *request;
@@ -61,14 +59,12 @@ typedef struct request_data {
     VALUE attributes;
     VALUE error_message;
     VALUE exception;
-#ifdef HAVE_LIBAPREQ
     ApacheRequest *apreq;
     VALUE upload_hook;
     VALUE upload_hook_arg;
     VALUE upload_table;
     VALUE cookies;
     VALUE param_table;
-#endif
 } request_data;
 
 #define REQ_SYNC_HEADER     FL_USER1
@@ -111,13 +107,11 @@ static void request_mark(request_data *data)
     rb_gc_mark(data->attributes);
     rb_gc_mark(data->error_message);
     rb_gc_mark(data->exception);
-#ifdef HAVE_LIBAPREQ
     rb_gc_mark(data->upload_hook);
     rb_gc_mark(data->upload_hook_arg);
     rb_gc_mark(data->upload_table);
     rb_gc_mark(data->cookies);
     rb_gc_mark(data->param_table);
-#endif
 }
 
 static APR_CLEANUP_RETURN_TYPE cleanup_request_object(void *data)
@@ -170,14 +164,12 @@ static VALUE apache_request_new(request_rec *r)
     data->attributes = Qnil;
     data->error_message = Qnil;
     data->exception = Qnil;
-#ifdef HAVE_LIBAPREQ
     data->apreq = ApacheRequest_new( r );
     data->upload_hook = Qnil;
     data->upload_hook_arg = Qnil;
     data->upload_table = rb_hash_new();
     data->cookies = rb_hash_new();
     data->param_table = Qnil;
-#endif
     
     rb_apache_register_object(obj);
     if (r->request_config)
@@ -1692,9 +1684,6 @@ static VALUE request_register_cleanup(int argc, VALUE *argv, VALUE self)
     return Qnil;
 }
 
-
-#ifdef HAVE_LIBAPREQ
-
 static VALUE request_libapreq_p( VALUE klass )
 {
     return Qtrue;
@@ -1977,16 +1966,6 @@ static VALUE request_cookies_eq( VALUE self, VALUE newhash )
     return newhash;
 }
 
-#else /* !HAVE_LIBAPREQ */
-
-static VALUE request_libapreq_p( VALUE klass )
-{
-    return Qfalse;
-}
-
-#endif /* HAVE_LIBAPREQ */
-
-
 void rb_init_apache_request()
 {
     rb_eApachePrematureChunkEndError =
@@ -2177,7 +2156,6 @@ void rb_init_apache_request()
 
     rb_define_singleton_method(rb_cApacheRequest, "libapreq?", request_libapreq_p, 0 );
 
-#ifdef HAVE_LIBAPREQ
     id_post_max = rb_intern( "post_max" );
     id_disable_uploads = rb_intern( "disable_uploads" );
     id_temp_dir = rb_intern( "temp_dir" );
@@ -2207,7 +2185,6 @@ void rb_init_apache_request()
     rb_define_method(rb_cApacheRequest, "upload_hook", request_upload_hook, 0);
     rb_define_method(rb_cApacheRequest, "upload_hook_data=", request_upload_hook_data_eq, 1);
     rb_define_method(rb_cApacheRequest, "upload_hook_data", request_upload_hook_data, 0);
-#endif
 }
 
 /*

@@ -30,11 +30,6 @@
 #ifndef APACHELIB_H
 #define APACHELIB_H
 
-#ifdef HAVE_LIBAPREQ
-#include "apache_request.h"
-#include "apache_cookie.h"
-#endif
-
 /* apachelib.c */
 extern VALUE rb_mApache;
 extern VALUE rb_eApacheTimeoutError;
@@ -77,7 +72,6 @@ void rb_apache_request_flush(VALUE request);
 void rb_apache_request_set_error(VALUE request, VALUE error, VALUE exception);
 
 /* --- Libapreq Extensions ------------------------------  */
-#ifdef HAVE_LIBAPREQ
 
 extern VALUE rb_eApacheRequestError;
 
@@ -99,8 +93,6 @@ VALUE rb_apache_cookie_new(ApacheCookie *cookie);
 /* multival.c */
 extern VALUE rb_cApacheMultiVal;
 void rb_init_apache_multival();
-
-#endif /* --- HAVE_LIBAPREQ ------------------------------ */
 
 
 #define STRING_LITERAL(s) rb_str_new(s, sizeof(s) - 1)
