@@ -63,7 +63,7 @@ MAJOR = @MAJOR@
 MINOR = @MINOR@
 TEENY = @TEENY@
 VERSION = $(MAJOR).$(MINOR).$(TEENY)
-TAG = release_$(MAJOR)_$(MINOR)_$(TEENY)
+SVNREPOS = file:///home/shugo/svn/mod_ruby
 
 RUBYLIBS	= apache/ruby-run.rb \
 		  apache/registry.rb \
@@ -140,13 +140,10 @@ distclean: clean
 	find . -name '*~' | xargs rm -f
 
 tag:
-	cvs tag $(TAG)
-
-force_tag:
-	cvs tag -F $(TAG)
+	svn copy $(SVNREPOS)/mod_ruby/trunk $(SVNREPOS)/mod_ruby/tags/$(VERSION)
 
 dist:
-	cvs export -r $(TAG) -d mod_ruby-$(VERSION) mod_ruby
+	svn export $(SVNREPOS)/mod_ruby/tags/$(VERSION) mod_ruby-$(VERSION)
 	tar zcf ../mod_ruby-$(VERSION).tar.gz mod_ruby-$(VERSION)
 	rm -rf mod_ruby-$(VERSION)
 
