@@ -1,3 +1,7 @@
+Mon Sep 27 01:30:37 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* version 1.2.3 released.
+
 Sat Sep 25 12:58:27 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* mod_ruby.c (per_request_cleanup): call rb_gc().
