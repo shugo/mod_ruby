@@ -113,6 +113,8 @@ static ruby_request_t *ruby_request_queue = NULL;
 #define SHUTDOWN_RUBY_THREAD NULL
 #endif
 
+#define RUBY_OBJECT_HANDLER "ruby-object"
+
 static int ruby_object_handler(request_rec *r);
 static int ruby_trans_handler(request_rec *r);
 static int ruby_authen_handler(request_rec *r);
@@ -215,7 +217,7 @@ static void ruby_child_init(server_rec*, pool*);
 
 static const handler_rec ruby_handlers[] =
 {
-    {"ruby-object", ruby_object_handler},
+    {RUBY_OBJECT_HANDLER, ruby_object_handler},
     {NULL}
 };
 
@@ -1154,9 +1156,14 @@ static int ruby_handler(request_rec *r,
 static int ruby_object_handler(request_rec *r)
 {
     int retval;
-
-    ruby_dir_config *dconf = get_dir_config(r);
+    ruby_dir_config *dconf;
     
+#ifdef APACHE2
+    if (strcmp(r->handler, RUBY_OBJECT_HANDLER) != 0) {
+	return DECLINED;
+    }
+#endif
+    dconf = get_dir_config(r);
     retval = ruby_handler(r, dconf->ruby_handler, rb_intern("handler"), 0, 1);
 #ifdef APACHE2
     if (retval == DECLINED && r->finfo.filetype == APR_DIR)

@@ -1,3 +1,7 @@
+Thu Jul 15 22:11:33 2004  Shugo Maeda <shugo@modruby.net>
+
+	* mod_ruby.c (ruby_object_handler): check r->handler.
+
 Thu Jul  1 13:31:35 2004  Shugo Maeda <shugo@modruby.net>
 
 	* mod_ruby.c (ruby_log_error_string): do not pass newlines
