@@ -153,6 +153,7 @@ tag:
 
 dist:
 	svn export $(SVNREPOS)/mod_ruby/tags/$(VERSION) mod_ruby-$(VERSION)
+	svn log -v $(SVNREPOS)/mod_ruby/trunk/ > mod_ruby-$(VERSION)/ChangeLog
 	tar zcf ../mod_ruby-$(VERSION).tar.gz mod_ruby-$(VERSION)
 	rm -rf mod_ruby-$(VERSION)
 
