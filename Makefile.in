@@ -140,7 +140,9 @@ distclean: clean
 	find . -name '*~' | xargs rm -f
 
 tag:
-	svn copy $(SVNREPOS)/mod_ruby/trunk $(SVNREPOS)/mod_ruby/tags/$(VERSION)
+	svn copy $(SVNREPOS)/mod_ruby/trunk \
+		 $(SVNREPOS)/mod_ruby/tags/$(VERSION) \
+		 -m "tagged version $(VERSION)"
 
 dist:
 	svn export $(SVNREPOS)/mod_ruby/tags/$(VERSION) mod_ruby-$(VERSION)
