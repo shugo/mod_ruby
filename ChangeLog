@@ -1,3 +1,7 @@
+Fri Sep 24 03:45:52 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* included libapreq.
+
 Sun Sep 19 02:16:26 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* mod_ruby.c (mod_ruby_clearenv): use ruby_unsetenv().
