@@ -44,6 +44,10 @@
 #include "version.h"
 #include "util.h"
 
+#ifndef RUBY_EXTERN
+#define RUBY_EXTERN EXTERN
+#endif
+
 #ifndef StringValue
 #define StringValue(v) (v = rb_obj_as_string(v))
 #endif

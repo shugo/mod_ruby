@@ -68,11 +68,12 @@ extern char **environ;
 static char **origenviron;
 #endif /* WIN32 */
 
-EXTERN VALUE ruby_errinfo;
-EXTERN VALUE rb_stdin;
-EXTERN VALUE rb_stdout;
+RUBY_EXTERN VALUE ruby_errinfo;
+RUBY_EXTERN VALUE rb_stdin;
+RUBY_EXTERN VALUE rb_stdout;
+RUBY_EXTERN VALUE rb_stderr;
 #if RUBY_VERSION_CODE < 180
-EXTERN VALUE rb_defout;
+RUBY_EXTERN VALUE rb_defout;
 #endif
 
 static VALUE orig_stdin;
@@ -81,7 +82,7 @@ static VALUE orig_stdout;
 static VALUE orig_defout;
 #endif
 
-EXTERN VALUE rb_load_path;
+RUBY_EXTERN VALUE rb_load_path;
 static VALUE default_load_path;
 
 static const char *default_kcode;
@@ -652,6 +653,9 @@ static void ruby_init_interpreter(server_rec *s)
 #if RUBY_VERSION_CODE < 180
     orig_defout = rb_defout;
 #endif
+#ifdef APACHE2
+    rb_protect_funcall(rb_stderr, rb_intern("sync="), NULL, 1, Qtrue);
+#endif
 
     ruby_init_loadpath();
     default_load_path = rb_load_path;
@@ -694,7 +698,7 @@ static void dso_unload(void *handle)
 
 static void ruby_finalize_interpreter()
 {
-    EXTERN VALUE ruby_dln_librefs;
+    RUBY_EXTERN VALUE ruby_dln_librefs;
     int i;
 
     ruby_finalize();
