@@ -776,6 +776,9 @@ static APR_CLEANUP_RETURN_TYPE ruby_child_cleanup(void *data)
     pool *p;
     apr_status_t status;
 
+#ifdef SIGTERM
+    ruby_signal(SIGTERM, SIG_IGN);
+#endif
     status = apr_pool_create(&p, NULL);
     if (status != APR_SUCCESS)
 	return status;
