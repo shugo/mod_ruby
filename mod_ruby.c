@@ -93,6 +93,8 @@ array_header *ruby_required_libraries = NULL;
 #include "apr_thread_cond.h"
 
 static apr_thread_t *ruby_thread;
+static apr_thread_mutex_t *ruby_is_running_mutex;
+static apr_thread_cond_t *ruby_is_running_cond;
 static apr_thread_mutex_t *ruby_request_queue_mutex;
 static apr_thread_cond_t *ruby_request_queue_cond;
 
@@ -704,6 +706,11 @@ static void* APR_THREAD_FUNC ruby_thread_start(apr_thread_t *t, void *data)
 
     ruby_init_interpreter(s);
 
+    apr_thread_mutex_lock(ruby_is_running_mutex);
+    ruby_is_running = 1;
+    apr_thread_cond_signal(ruby_is_running_cond);
+    apr_thread_mutex_unlock(ruby_is_running_mutex);
+
     while (1) {
 	apr_thread_mutex_lock(ruby_request_queue_mutex);
 	while (ruby_request_queue == NULL)
@@ -807,27 +814,48 @@ static void ruby_child_init(server_rec *s, pool *p)
     if (!ruby_running()) {
 #if APR_HAS_THREADS
 	apr_status_t status;
+	status = apr_thread_mutex_create(&ruby_is_running_mutex,
+					 APR_THREAD_MUTEX_DEFAULT, p);
+	if (status != APR_SUCCESS) {
+	    ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
+			   "failed to create mutex");
+	    return;
+	}
+	status = apr_thread_cond_create(&ruby_is_running_cond, p);
+	if (status != APR_SUCCESS) {
+	    ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
+			   "failed to create cond");
+	    return;
+	}
 	status = apr_thread_mutex_create(&ruby_request_queue_mutex,
 					 APR_THREAD_MUTEX_DEFAULT, p);
 	if (status != APR_SUCCESS) {
 	    ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
 			   "failed to create mutex");
+	    return;
 	}
 	status = apr_thread_cond_create(&ruby_request_queue_cond, p);
 	if (status != APR_SUCCESS) {
 	    ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
 			   "failed to create cond");
+	    return;
 	}
 	status = apr_thread_create(&ruby_thread, NULL, ruby_thread_start, s, p);
 	if (status != APR_SUCCESS) {
 	    ruby_log_error(APLOG_MARK, APLOG_CRIT | APLOG_NOERRNO, s,
 			   "failed to create ruby thread");
+	    return;
 	}
+	apr_thread_mutex_lock(ruby_is_running_mutex);
+	while (!ruby_running())
+	    apr_thread_cond_wait(ruby_is_running_cond,
+		    		 ruby_is_running_mutex);
+	apr_thread_mutex_unlock(ruby_is_running_mutex);
 #else
 	ruby_init_interpreter(s);
+	ruby_is_running = 1;
 #endif
 	ap_register_cleanup(p, NULL, ruby_child_cleanup, ap_null_cleanup);
-	ruby_is_running = 1;
     }
 
     r = fake_request_rec(s, p, "RubyChildInitHandler");
