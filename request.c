@@ -1472,12 +1472,14 @@ static VALUE request_bytes_sent(VALUE self)
 static VALUE request_send_fd(VALUE self, VALUE io)
 {
     OpenFile *fptr;
+    request_data *data;
 #ifdef APACHE2
     apr_size_t bytes_sent;
+    apr_file_t *file;
+    int fd;
 #else
     long bytes_sent;
 #endif
-    request_data *data;
 
     request_set_sync(self, Qtrue);
     rb_apache_request_flush(self);    
@@ -1486,7 +1488,11 @@ static VALUE request_send_fd(VALUE self, VALUE io)
     GetOpenFile(io, fptr);
 
 #ifdef APACHE2
-    ap_send_fd((apr_file_t *)fptr->f, data->request, 0, -1, &bytes_sent);
+    fd = fileno(fptr->f);
+    if (apr_os_file_put(&file, &fd, 0, data->request->pool) != APR_SUCCESS) {
+	rb_raise(rb_eIOError, "apr_os_file_put() failed");
+    }
+    ap_send_fd(file, data->request, 0, -1, &bytes_sent);
 #else
     bytes_sent = ap_send_fd_length(fptr->f, data->request, -1);
 #endif
