@@ -1,3 +1,7 @@
+Tue Dec 14 10:18:24 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* request.c (per_request_init): set $0 correctly. (closes #4)
+
 Sat Dec 11 09:19:16 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* request.c (request_all_params): new method. (closes #3)

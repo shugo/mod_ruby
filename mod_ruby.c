@@ -98,6 +98,8 @@ static VALUE orig_defout;
 RUBY_EXTERN VALUE rb_load_path;
 static VALUE default_load_path;
 
+RUBY_EXTERN VALUE rb_progname;
+
 static const char *default_kcode;
 
 static int ruby_is_running = 0;
@@ -1063,6 +1065,8 @@ static void per_request_init(request_rec *r)
 #if RUBY_VERSION_CODE < 180
     rb_defout = rb_request;
 #endif
+    if (r->filename)
+	rb_progname = rb_tainted_str_new2(r->filename);
 }
 
 static VALUE exec_end_proc(VALUE arg)
@@ -1099,6 +1103,7 @@ static void per_request_cleanup(request_rec *r, int flush)
 #endif
     }
     rb_set_kcode(default_kcode);
+    rb_progname = Qnil;
     rb_gc();
 }
 
