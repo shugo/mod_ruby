@@ -1915,24 +1915,49 @@ static VALUE request_script_path(VALUE self)
 
 static VALUE request_param(VALUE self, VALUE key)
 {
-    request_data *data = get_request_data( self );
+    request_data *data = get_request_data(self);
     const char *val;
 
-    if ( !data->apreq->parsed ) rb_funcall( self, rb_intern("parse"), 0 );
+    if (!data->apreq->parsed) rb_funcall(self, rb_intern("parse"), 0);
     val = ApacheRequest_param(data->apreq, StringValuePtr(key));
     return val ? rb_tainted_str_new2(val) : Qnil;
 }
 
-static VALUE request_params( VALUE self, VALUE key )
+static VALUE request_params(VALUE self, VALUE key)
 {
-    request_data *data = get_request_data( self );
+    request_data *data = get_request_data(self);
     array_header *val;
 
-    if ( !data->apreq->parsed ) rb_funcall( self, rb_intern("parse"), 0 );
+    if (!data->apreq->parsed) rb_funcall(self, rb_intern("parse"), 0);
     val = ApacheRequest_params(data->apreq, StringValuePtr(key));
     return val ? rb_apache_array_new(val) : Qnil;
 }
 
+static int make_all_params(void *data, const char *key, const char *val)
+{
+    VALUE hash = (VALUE) data;
+    VALUE vkey, ary;
+
+    vkey = rb_tainted_str_new2(key);
+    ary = rb_hash_aref(hash, vkey);
+    if (NIL_P(ary)) {
+	ary = rb_ary_new();
+	rb_hash_aset(hash, vkey, ary);
+    }
+    rb_ary_push(ary, rb_tainted_str_new2(val));
+    return 1;
+}
+
+static VALUE request_all_params(VALUE self, VALUE key)
+{
+    request_data *data = get_request_data(self);
+    VALUE result;
+
+    if (!data->apreq->parsed) rb_funcall(self, rb_intern("parse"), 0);
+    result = rb_hash_new();
+    ap_table_do(make_all_params, (void *) result, data->apreq->parms, NULL);
+    return result;
+}
 
 static VALUE request_paramtable( VALUE self )
 {
@@ -2189,6 +2214,7 @@ void rb_init_apache_request()
     rb_define_method(rb_cApacheRequest, "script_path", request_script_path, 0);
     rb_define_method(rb_cApacheRequest, "param", request_param, 1);
     rb_define_method(rb_cApacheRequest, "params", request_params, 1);
+    rb_define_method(rb_cApacheRequest, "all_params", request_all_params, 0);
     rb_define_method(rb_cApacheRequest, "paramtable", request_paramtable, 0);
     rb_define_method(rb_cApacheRequest, "params_as_string",
 		     request_params_as_string, 1);
