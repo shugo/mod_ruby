@@ -1,3 +1,7 @@
+Mon Aug  9 16:15:59 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* version 1.2.2 released.
+
 Mon Aug  9 15:44:09 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* mod_ruby.c (ruby_child_init): wait until ruby_is_running is
