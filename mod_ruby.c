@@ -174,6 +174,9 @@ static const command_rec ruby_cmds[] =
     {"RubyCleanupHandler", ruby_cmd_cleanup_handler,
      NULL, OR_ALL, TAKE1,
      "set cleanup handler object"},
+    {"RubyChildInitHandler", ruby_cmd_child_init_handler,
+     NULL, RSRC_CONF, TAKE1,
+     "set child init handler object"},
     {NULL}
 };
 
@@ -484,9 +487,11 @@ static void handle_error(request_rec *r, int state)
     VALUE errmsg, reqobj;
 
     errmsg = ruby_get_error_info(state);
-    reqobj = (VALUE) ap_get_module_config(r->request_config, &ruby_module);
-    if (reqobj)
-	rb_apache_request_set_error(reqobj, errmsg, ruby_errinfo);
+    if (r->request_config) {
+	reqobj = (VALUE) ap_get_module_config(r->request_config, &ruby_module);
+	if (reqobj)
+	    rb_apache_request_set_error(reqobj, errmsg, ruby_errinfo);
+    }
     ruby_log_error_string(r->server, errmsg);
 }
 
@@ -776,12 +781,29 @@ static APR_CLEANUP_RETURN_TYPE ruby_child_cleanup(void *data)
     APR_CLEANUP_RETURN_SUCCESS();
 }
 
+static request_rec *fake_request_rec(server_rec *s, pool *p, char *hook)
+{
+    request_rec *r = (request_rec *) ap_pcalloc(p, sizeof(request_rec));
+    r->pool = p; 
+    r->server = s;
+    r->per_dir_config = NULL;
+    r->request_config = NULL;
+    r->uri = hook;
+    r->notes = NULL;
+    return r;
+}
+
+static int ruby_handler(request_rec *, array_header *, ID, int, int);
+
 #ifdef APACHE2
 static void ruby_child_init(pool *p, server_rec *s)
 #else /* Apache 1.x */
 static void ruby_child_init(server_rec *s, pool *p)
 #endif
 {
+    ruby_server_config *conf;
+    request_rec *r;
+
     if (!ruby_running()) {
 #if APR_HAS_THREADS
 	apr_status_t status;
@@ -807,6 +829,11 @@ static void ruby_child_init(server_rec *s, pool *p)
 	ap_register_cleanup(p, NULL, ruby_child_cleanup, ap_null_cleanup);
 	ruby_is_running = 1;
     }
+
+    r = fake_request_rec(s, p, "RubyChildInitHandler");
+    conf = get_server_config(r->server);
+    ruby_handler(r, conf->ruby_child_init_handler,
+		 rb_intern("child_init"), 0, 0);
 }
 
 static void mod_ruby_clearenv()
@@ -981,7 +1008,7 @@ static void per_request_init(request_rec *r)
     mod_ruby_setup_loadpath(sconf, dconf);
     ruby_debug = Qfalse;
     ruby_verbose = Qfalse;
-    if (dconf->kcode)
+    if (dconf && dconf->kcode)
 	rb_set_kcode(dconf->kcode);
     rb_request = rb_get_request_object(r);
     rb_stdin = rb_stdout = rb_request;
@@ -1091,7 +1118,7 @@ static void *ruby_handler_internal(handler_internal_arg_t *iarg)
 
     sconf = get_server_config(r->server);
     dconf = get_dir_config(r);
-    safe_level = dconf->safe_level;
+    safe_level = dconf ? dconf->safe_level : MR_DEFAULT_SAFE_LEVEL;
     handlers = (char **) handlers_arr->elts;
     handlers_len = handlers_arr->nelts;
     iarg->retval = DECLINED;

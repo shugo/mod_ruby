@@ -125,6 +125,8 @@ static APR_CLEANUP_RETURN_TYPE cleanup_request_object(void *data)
     request_rec *r = (request_rec *) data;
     VALUE reqobj;
 
+    if (r->request_config == NULL)
+	APR_CLEANUP_RETURN_SUCCESS();
     reqobj = (VALUE) ap_get_module_config(r->request_config, &ruby_module);
     if (reqobj == 0) APR_CLEANUP_RETURN_SUCCESS();
     if (TYPE(reqobj) == T_DATA) {
@@ -173,20 +175,23 @@ static VALUE apache_request_new(request_rec *r)
 #endif
     
     rb_apache_register_object(obj);
-    ap_set_module_config(r->request_config, &ruby_module, (void *) obj);
+    if (r->request_config)
+	ap_set_module_config(r->request_config, &ruby_module, (void *) obj);
     ap_register_cleanup(r->pool, (void *) r,
 			cleanup_request_object, ap_null_cleanup);
-    switch (dconf->output_mode) {
-    case MR_OUTPUT_SYNC_HEADER:
-	FL_SET(obj, REQ_SYNC_HEADER);
-	break;
-    case MR_OUTPUT_SYNC:
-	FL_SET(obj, REQ_SYNC_HEADER);
-	FL_SET(obj, REQ_SYNC_OUTPUT);
-	break;
-    case MR_OUTPUT_NOSYNC:
-    default:
-	break;
+    if (dconf) {
+	switch (dconf->output_mode) {
+	    case MR_OUTPUT_SYNC_HEADER:
+		FL_SET(obj, REQ_SYNC_HEADER);
+		break;
+	    case MR_OUTPUT_SYNC:
+		FL_SET(obj, REQ_SYNC_HEADER);
+		FL_SET(obj, REQ_SYNC_OUTPUT);
+		break;
+	    case MR_OUTPUT_NOSYNC:
+	    default:
+		break;
+	}
     }
     return obj;
 }
@@ -196,13 +201,12 @@ VALUE rb_get_request_object(request_rec *r)
     VALUE reqobj;
 
     if (r == NULL) return Qnil;
-    reqobj = (VALUE) ap_get_module_config(r->request_config, &ruby_module);
-    if (reqobj) {
-	return reqobj;
+    if (r->request_config) {
+	reqobj = (VALUE) ap_get_module_config(r->request_config, &ruby_module);
+	if (reqobj)
+	    return reqobj;
     }
-    else {
-	return apache_request_new(r);
-    }
+    return apache_request_new(r);
 }
 
 static request_data *get_request_data(VALUE obj)

@@ -54,6 +54,7 @@ const char *ruby_cmd_header_parser_handler(cmd_parms*, ruby_dir_config*, char*);
 const char *ruby_cmd_post_read_request_handler(cmd_parms*, ruby_dir_config*, char*);
 const char *ruby_cmd_init_handler(cmd_parms*, ruby_dir_config*, char*);
 const char *ruby_cmd_cleanup_handler(cmd_parms*, ruby_dir_config*, char*);
+const char *ruby_cmd_child_init_handler(cmd_parms*, void*, char*);
 
 #endif /* !RUBY_CONFIG_H */
 

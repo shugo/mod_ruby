@@ -46,7 +46,19 @@ void *ruby_create_server_config(pool *p, server_rec *s)
     conf->load_path = ap_make_array(p, 1, sizeof(char*));
     conf->env = ap_make_table(p, 1);
     conf->timeout = MR_DEFAULT_TIMEOUT;
+    conf->ruby_child_init_handler = NULL;
     return conf;
+}
+
+static array_header *merge_handlers(pool *p,
+				    array_header *base,
+				    array_header *add)
+{
+    if (base == NULL)
+	return add;
+    if (add == NULL)
+	return base;
+    return ap_append_arrays(p, add, base);
 }
 
 void *ruby_merge_server_config(pool *p, void *basev, void *addv)
@@ -67,6 +79,9 @@ void *ruby_merge_server_config(pool *p, void *basev, void *addv)
     }
     new->env = ap_overlay_tables(p, add->env, base->env);
     new->timeout = add->timeout ? add->timeout : base->timeout;
+    new->ruby_child_init_handler =
+	merge_handlers(p, base->ruby_child_init_handler,
+		       add->ruby_child_init_handler);
     return (void *) new;
 }
 
@@ -93,17 +108,6 @@ void *ruby_create_dir_config(pool *p, char *dirname)
     conf->ruby_init_handler = NULL;
     conf->ruby_cleanup_handler = NULL;
     return conf;
-}
-
-static array_header *merge_handlers(pool *p,
-				    array_header *base,
-				    array_header *add)
-{
-    if (base == NULL)
-	return add;
-    if (add == NULL)
-	return base;
-    return ap_append_arrays(p, add, base);
 }
 
 void *ruby_merge_dir_config(pool *p, void *basev, void *addv)
@@ -406,6 +410,15 @@ const char *ruby_cmd_cleanup_handler(cmd_parms *cmd,
 				     ruby_dir_config *conf, char *arg)
 {
     push_handler(cmd->pool, conf->ruby_cleanup_handler, arg);
+    return NULL;
+}
+
+const char *ruby_cmd_child_init_handler(cmd_parms *cmd,
+					void *dummy, char *arg)
+{
+    ruby_server_config *conf = get_server_config(cmd->server);
+
+    push_handler(cmd->pool, conf->ruby_child_init_handler, arg);
     return NULL;
 }
 

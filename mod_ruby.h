@@ -101,6 +101,7 @@ typedef struct {
     array_header *load_path;
     table *env;
     int timeout;
+    array_header *ruby_child_init_handler;
 } ruby_server_config;
 
 typedef struct {
@@ -165,8 +166,10 @@ void mod_ruby_setup_loadpath(ruby_server_config *sconf,
 	((ruby_server_config *) ap_get_module_config(s->module_config, \
 						     &ruby_module))
 #define get_dir_config(r) \
-	((ruby_dir_config *) ap_get_module_config(r->per_dir_config, \
-						  &ruby_module))
+	(r->per_dir_config ? \
+	   ((ruby_dir_config *) ap_get_module_config(r->per_dir_config, \
+						    &ruby_module)) : \
+	   NULL)
 
 #if APR_HAS_THREADS
 typedef void *(*ruby_interp_func_t)(void*);
