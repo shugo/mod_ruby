@@ -72,8 +72,10 @@ void rb_apache_request_flush(VALUE request);
 void rb_apache_request_set_error(VALUE request, VALUE error, VALUE exception);
 
 /* bucket.c */
+#ifdef APACHE2
 extern VALUE rb_cApacheBucket;
 void rb_init_apache_bucket();
+#endif
 
 /* --- Libapreq Extensions ------------------------------  */
 
