@@ -148,6 +148,27 @@ static VALUE bucket_is_pool(VALUE self)
     return APR_BUCKET_IS_POOL(b) ? Qtrue : Qfalse;
 }
 
+static VALUE bucket_read(int argc, VALUE *argv, VALUE self)
+{
+    VALUE length, block;
+    apr_bucket *b;
+    apr_size_t len;
+    const char *str;
+    apr_status_t status;
+    apr_read_type_e read_type = APR_BLOCK_READ;
+
+    if (rb_scan_args(argc, argv, "11", &length, &block) == 2) {
+	read_type = RTEST(block) ? APR_BLOCK_READ : APR_NONBLOCK_READ;
+    }
+    Data_Get_Struct(self, apr_bucket, b);
+    len = NUM2ULONG(length);
+    status = apr_bucket_read(b, &str, &len, read_type);
+    if (status != APR_SUCCESS) {
+	rb_raise(rb_eRuntimeError, "error");
+    }
+    return rb_str_new(str, len);
+}
+
 VALUE rb_apache_bucket_brigade_new(apr_bucket_brigade *bb)
 {
     return Data_Wrap_Struct(rb_cApacheBucketBrigade, NULL, NULL, bb);
@@ -215,6 +236,7 @@ void rb_init_apache_bucket()
     rb_define_method(rb_cApacheBucket, "immortal?", bucket_is_immortal, 0);
     rb_define_method(rb_cApacheBucket, "mmap?", bucket_is_mmap, 0);
     rb_define_method(rb_cApacheBucket, "pool?", bucket_is_pool, 0);
+    rb_define_method(rb_cApacheBucket, "read", bucket_read, -1);
 
     rb_cApacheBucketBrigade =
 	rb_define_class_under(rb_mApache, "BucketBrigade", rb_cObject);
