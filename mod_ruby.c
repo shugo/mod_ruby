@@ -392,13 +392,13 @@ static void get_exception_info(VALUE str)
 	len = ep->len;
 	for (i=1; i<len; i++) {
 	    if (TYPE(ep->ptr[i]) == T_STRING) {
-		STR_CAT_LITERAL(str, "\tfrom ");
+		STR_CAT_LITERAL(str, "  from ");
 		rb_str_cat(str, RSTRING(ep->ptr[i])->ptr, RSTRING(ep->ptr[i])->len);
 		STR_CAT_LITERAL(str, "\n");
 	    }
 	    if (i == TRACE_HEAD && len > TRACE_MAX) {
 		char buff[BUFSIZ];
-		snprintf(buff, BUFSIZ, "\t ... %ld levels...\n",
+		snprintf(buff, BUFSIZ, "   ... %ld levels...\n",
 			 len - TRACE_HEAD - TRACE_TAIL);
 		rb_str_cat(str, buff, strlen(buff));
 		i = len - TRACE_TAIL;
@@ -449,7 +449,7 @@ VALUE ruby_get_error_info(int state)
 }
 
 void ruby_log_error(const char *file, int line, int level,
-			const server_rec *s, const char *fmt, ...)
+                    const server_rec *s, const char *fmt, ...)
 {
     va_list args;
     char buf[BUFSIZ];
@@ -466,12 +466,15 @@ void ruby_log_error(const char *file, int line, int level,
 
 void ruby_log_error_string(server_rec *s, VALUE errmsg)
 {
-    VALUE logmsg;
+    VALUE msgs;
+    int i;
 
-    logmsg = STRING_LITERAL("error in ruby\n");
-    rb_str_concat(logmsg, errmsg);
-    ruby_log_error(APLOG_MARK, APLOG_ERR | APLOG_NOERRNO, s,
-		   "%s", StringValuePtr(logmsg));
+    ruby_log_error(APLOG_MARK, APLOG_ERR | APLOG_NOERRNO, s, "error in ruby");
+    msgs = rb_str_split(errmsg, "\n");
+    for (i = 0; i < RARRAY(msgs)->len; i++) {
+        ruby_log_error(APLOG_MARK, APLOG_ERR | APLOG_NOERRNO, s,
+                       "%s", StringValuePtr(RARRAY(msgs)->ptr[i]));
+    }
 }
 
 static void handle_error(request_rec *r, int state)
