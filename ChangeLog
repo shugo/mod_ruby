@@ -1,4 +1,8 @@
-Wed Aug 11 12:18:12 2004  Shugo Maeda  <shugo@ruby-lang.org>
+Wed Aug 11 12:29:37 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* mod_ruby.c (ruby_child_cleanup): join ruby_thread.
+
+Wed Aug 11 12:18:12 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* mod_ruby.c (ruby_child_cleanup): ignore SIGTERM.
 

@@ -774,7 +774,7 @@ static APR_CLEANUP_RETURN_TYPE ruby_child_cleanup(void *data)
 {
 #if APR_HAS_THREADS
     pool *p;
-    apr_status_t status;
+    apr_status_t status, result;
 
 #ifdef SIGTERM
     ruby_signal(SIGTERM, SIG_IGN);
@@ -784,11 +784,14 @@ static APR_CLEANUP_RETURN_TYPE ruby_child_cleanup(void *data)
 	return status;
     status = ruby_call_interpreter(p, SHUTDOWN_RUBY_THREAD, NULL, NULL, NULL);
     apr_pool_clear(p);
+    if (status != APR_SUCCESS)
+	return status;
+    status = apr_thread_join(&result, ruby_thread);
     return status;
 #else
     ruby_finalize_interpreter();
-#endif
     APR_CLEANUP_RETURN_SUCCESS();
+#endif
 }
 
 static request_rec *fake_request_rec(server_rec *s, pool *p, char *hook)
