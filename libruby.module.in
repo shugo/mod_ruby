@@ -1,0 +1,4 @@
+Name: ruby_module
+ConfigStart
+	LIBS="@MODULE_LIBS@ $LIBS"
+ConfigEnd
