@@ -1,5 +1,3 @@
-=begin
-
 = README for mod_ruby
 
 == What's mod_ruby?
@@ -37,11 +35,3 @@ You can use Apache 2.0 also, but there are some restrictions.
 == Official Web Site
 
 ((<URL:http://modruby.net/>))
-
-=end
-
-Local variables:
-mode: indented-text
-mode: auto-fill
-fill-column: 70
-End:
