@@ -507,10 +507,11 @@ if $APXS
   if $? != 0
     AC_MSG_ERROR("failed to exec #{$APXS}")
   end
-  $APACHE_LIBDIR = `#{$APXS} -q LIBDIR 2> /dev/null`.chomp
-  #if $? != 0
-  #  AC_MSG_ERROR("failed to exec #{$APXS}")
-  #end
+  if /mswin32/ =~ RUBY_PLATFORM
+    $APACHE_LIBDIR = `#{$APXS} -q LIBDIR 2> nul`.chomp
+  else
+    $APACHE_LIBDIR = `#{$APXS} -q LIBDIR 2> /dev/null`.chomp
+  end
   $APACHE_LIBS = 'libapr.lib libaprutil.lib libhttpd.lib' if /mswin32/ =~ RUBY_PLATFORM
   $TARGET = "mod_ruby.so"
   $INSTALL_TARGET = "install-shared"
