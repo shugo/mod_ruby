@@ -701,7 +701,9 @@ static void ruby_init_interpreter(server_rec *s)
 
 static void dso_unload(void *handle)
 {
-#if defined(HPUX) || defined(HPUX10) || defined(HPUX11)
+#if defined(_WIN32)
+    FreeLibrary((HANDLE) handle);
+#elif defined(HPUX) || defined(HPUX10) || defined(HPUX11)
     shl_unload((shl_t) handle);
 #elif defined(HAVE_DYLD)
     NSUnLinkModule(handle, FALSE);

@@ -30,6 +30,18 @@
 #ifndef MOD_RUBY_H
 #define MOD_RUBY_H
 
+#include "ruby.h"
+#include "rubyio.h"
+#include "version.h"
+#include "util.h"
+#include "intern.h"
+
+#if defined(_WIN32)
+#undef pid_t
+#undef uid_t
+#undef gid_t
+#endif
+
 #include "httpd.h"
 #include "http_config.h"
 #include "http_core.h"
@@ -38,12 +50,6 @@
 #include "http_protocol.h"
 #include "http_request.h"
 #include "util_script.h"
-
-#include "ruby.h"
-#include "rubyio.h"
-#include "version.h"
-#include "util.h"
-#include "intern.h"
 
 #ifndef RUBY_EXTERN
 #define RUBY_EXTERN EXTERN

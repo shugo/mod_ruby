@@ -180,5 +180,5 @@ multival.@OBJEXT@: multival.c mod_ruby.h apachelib.h
 bucket.@OBJEXT@: bucket.c mod_ruby.h apachelib.h
 
 apache_request.@OBJEXT@: apache_request.c mod_ruby.h apache_request.h
-apache_multpart_buffer.@OBJEXT@: apache_multpart_buffer.c mod_ruby.h apache_request.h apache_multpart_buffer.h
+apache_multipart_buffer.@OBJEXT@: apache_multipart_buffer.c mod_ruby.h apache_request.h apache_multipart_buffer.h
 apache_cookie.@OBJEXT@: apache_cookie.c apache_cookie.h apache_request.h
