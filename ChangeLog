@@ -1,3 +1,7 @@
+Sun Aug  8 08:03:54 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* version 1.2.1 released.
+
 Sun Aug  8 07:41:03 2004  Shugo Maeda <shugo@modruby.net>
 
 	* mod_ruby.c (ruby_child_init): added new handler
