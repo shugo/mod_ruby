@@ -1,0 +1,38 @@
+= mod_rubyのREADME
+
+== mod_rubyとは?
+
+mod_rubyはApacheウェブサーバにRubyインタプリタを組み込み、CGIスクリ
+プトをネイティブに起動できるようにします。スクリプトはmod_rubyを利
+用しない場合よりも高速に起動します。
+
+== 要求される環境
+
+* Ruby version 1.6.x 以降
+  (version 1.6.4 以降推奨)
+* Apache version 1.3.3 以降
+
+Apache 2.0を利用することもできますが、いくつかの制限があります。
+
+* mod_rubyをDSOモジュールとして構築する必要があります。
+  (configure.rbの実行時に、--with-apacheオプションの代りに--with-apxs
+  オプションを使用してください。)
+* Apache 2.0のAPIはApache 1.xのAPIとは異なるため、Apache 2.0用には実装
+  されていないメソッドがあります。
+
+== インストール
+
+(1) `./configure.rb'とタイプし、Makefileを作成してください。
+    (へルプメッセージを得るには`./configure.rb --help'とタイプしてください。)
+
+(2) `make'とタイプし、mod_rubyをコンパイルしてください。
+
+(3) `make install'とタイプし、ファイルをインストールしてください。
+
+(4) examples/httpd.confを参考にhttpd.confを編集してください。
+
+(5) Apacheを再起動してください。
+
+== 公式Webサイト
+
+((<URL:http://modruby.net/>))

@@ -1,0 +1,181 @@
+# Generated automatically by configure.rb.
+
+srcdir = @srcdir@
+topdir = @topdir@
+hdrdir = @hdrdir@
+VPATH = $(srcdir)
+
+arch = @arch@
+sitearch = @sitearch@
+ruby_version = @ruby_version@
+
+DESTDIR = 
+
+prefix = $(DESTDIR)@prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+datadir = @datadir@
+libdir = @libdir@
+rubylibdir = @rubylibdir@
+archdir = @archdir@
+sitedir = @sitedir@
+sitelibdir = @sitelibdir@
+sitearchdir = @sitearchdir@
+includedir = @includedir@
+mandir = @mandir@
+
+CC = @CC@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+RUBY = $(RUBY_INSTALL_NAME)
+
+CFLAGS = @CFLAGS@ -I. -I$(hdrdir) $(APACHE_INCLUDES) $(LIBAPREQ_INCLUDES) @DEFS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+XLDFLAGS = @XLDFLAGS@
+DLDFLAGS = @DLDFLAGS@
+LDSHARED = @LDSHARED@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DLLIB = @INSTALL_DLLIB@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_DIR = @INSTALL_DIR@
+
+RUBY_INSTALL_NAME = @RUBY_INSTALL_NAME@
+LIBRUBYARG = @LIBRUBYARG@
+LIBRUBYARG_SHARED = @LIBRUBYARG_SHARED@
+LIBRUBYARG_STATIC = @LIBRUBYARG_STATIC@
+LIBRUBY_A = @LIBRUBY_A@
+RUBY_SO_NAME = @RUBY_SO_NAME@
+
+APACHE_SRCDIR = @APACHE_SRCDIR@
+APACHE_INCLUDES = @APACHE_INCLUDES@
+APACHE_LIBEXECDIR = $(DESTDIR)@APACHE_LIBEXECDIR@
+APACHE_SRC_UID = @APACHE_SRC_UID@
+APACHE_SRC_GID = @APACHE_SRC_GID@
+
+LIBAPREQ_INCLUDES = @LIBAPREQ_INCLUDES@
+
+TARGET = @TARGET@
+
+MAJOR = @MAJOR@
+MINOR = @MINOR@
+TEENY = @TEENY@
+VERSION = $(MAJOR).$(MINOR).$(TEENY)
+SVNREPOS = file:///home/shugo/svn/mod_ruby
+
+RUBYLIBS	= apache/ruby-run.rb \
+		  apache/registry.rb \
+		  apache/eruby-run.rb \
+		  apache/erb-run.rb \
+		  apache/rd2html.rb \
+		  apache/ruby-debug.rb \
+		  apache/eruby-debug.rb \
+		  apache/query.rb \
+		  auto-reload.rb
+
+OBJS		= mod_ruby.@OBJEXT@ \
+		  ruby_config.@OBJEXT@ \
+		  apachelib.@OBJEXT@ \
+		  array_header.@OBJEXT@ \
+		  table.@OBJEXT@ \
+		  connection.@OBJEXT@ \
+		  server.@OBJEXT@ \
+		  request.@OBJEXT@ \
+		  upload.@OBJEXT@ \
+		  cookie.@OBJEXT@ \
+		  paramtable.@OBJEXT@ \
+		  multival.@OBJEXT@ \
+		  apache_request.@OBJEXT@ \
+		  apache_multipart_buffer.@OBJEXT@ \
+		  apache_cookie.@OBJEXT@
+
+.c.@OBJEXT@:
+	$(CC) $(CFLAGS) -c $<
+
+all: $(TARGET)
+
+install: @INSTALL_TARGET@ install-ruby
+
+site-install: @INSTALL_TARGET@ install-siteruby
+
+install-ruby:
+	$(INSTALL_DIR) $(rubylibdir)/apache
+	for file in $(RUBYLIBS); do \
+		$(INSTALL_DATA) $(srcdir)/lib/$$file $(rubylibdir)/$$file; \
+	done
+
+install-siteruby:
+	$(INSTALL_DIR) $(sitelibdir)/apache
+	for file in $(RUBYLIBS); do \
+		$(INSTALL_DATA) $(srcdir)/lib/$$file $(sitelibdir)/$$file; \
+	done
+
+install-static: all
+	$(INSTALL_DIR) -o $(APACHE_SRC_UID) -g $(APACHE_SRC_GID) \
+		$(APACHE_SRCDIR)/src/modules/ruby
+	$(INSTALL_DATA) -o $(APACHE_SRC_UID) -g $(APACHE_SRC_GID) \
+		$(TARGET) $(APACHE_SRCDIR)/src/modules/ruby
+	$(INSTALL_DATA) -o $(APACHE_SRC_UID) -g $(APACHE_SRC_GID) \
+		mod_ruby.c $(APACHE_SRCDIR)/src/modules/ruby
+	$(INSTALL_DATA) -o $(APACHE_SRC_UID) -g $(APACHE_SRC_GID) \
+		Makefile.tmpl $(APACHE_SRCDIR)/src/modules/ruby
+	$(INSTALL_DATA) -o $(APACHE_SRC_UID) -g $(APACHE_SRC_GID) \
+		Makefile.libdir $(APACHE_SRCDIR)/src/modules/ruby
+	$(INSTALL_DATA) -o $(APACHE_SRC_UID) -g $(APACHE_SRC_GID) \
+		libruby.module $(APACHE_SRCDIR)/src/modules/ruby
+	$(INSTALL_DATA) -o $(APACHE_SRC_UID) -g $(APACHE_SRC_GID) \
+		ruby_shared_stub.c $(APACHE_SRCDIR)/src/modules/ruby
+
+install-shared: all
+	$(INSTALL_DIR) $(APACHE_LIBEXECDIR)
+	$(INSTALL_DLLIB) $(TARGET) $(APACHE_LIBEXECDIR)
+
+clean:
+	rm -f libruby.a
+	rm -f mod_ruby.so tests/mod_ruby.so
+	rm -f $(OBJS)
+
+distclean: clean
+	rm -f Makefile
+	rm -f doc/Makefile
+	rm -f libruby.module
+	rm -f mod_ruby.imp
+	rm -f test.cfg
+	find . -name '*~' | xargs rm -f
+
+tag:
+	svn copy $(SVNREPOS)/mod_ruby/trunk \
+		 $(SVNREPOS)/mod_ruby/tags/$(VERSION) \
+		 -m "tagged version $(VERSION)"
+
+dist:
+	svn export $(SVNREPOS)/mod_ruby/tags/$(VERSION) mod_ruby-$(VERSION)
+	tar zcf ../mod_ruby-$(VERSION).tar.gz mod_ruby-$(VERSION)
+	rm -rf mod_ruby-$(VERSION)
+
+libruby.a: $(OBJS)
+	$(AR) rcu $@ $(OBJS)
+	$(RANLIB) $@
+
+mod_ruby.so: $(OBJS)
+	$(LDSHARED) $(DLDFLAGS) $(XLDFLAGS) -o $(TARGET) $(OBJS) \
+		$(LIBRUBYARG) $(LIBS)
+
+mod_ruby.@OBJEXT@: mod_ruby.c mod_ruby.h ruby_config.h apachelib.h
+ruby_config.@OBJEXT@: ruby_config.c mod_ruby.h ruby_config.h
+apachelib.@OBJEXT@: apachelib.c mod_ruby.h apachelib.h
+array_header.@OBJEXT@: array_header.c mod_ruby.h apachelib.h
+table.@OBJEXT@: table.c mod_ruby.h apachelib.h
+connection.@OBJEXT@: connection.c mod_ruby.h apachelib.h
+server.@OBJEXT@: server.c mod_ruby.h apachelib.h
+request.@OBJEXT@: request.c mod_ruby.h apachelib.h
+upload.@OBJEXT@: upload.c mod_ruby.h apachelib.h
+cookie.@OBJEXT@: cookie.c mod_ruby.h apachelib.h
+paramtable.@OBJEXT@: paramtable.c mod_ruby.h apachelib.h
+multival.@OBJEXT@: multival.c mod_ruby.h apachelib.h
+
+apache_request.@OBJEXT@: apache_request.c mod_ruby.h apache_request.h
+apache_multpart_buffer.@OBJEXT@: apache_multpart_buffer.c mod_ruby.h apache_request.h apache_multpart_buffer.h
+apache_cookie.@OBJEXT@: apache_cookie.c apache_cookie.h apache_request.h

@@ -1,0 +1,59 @@
+#!/usr/bin/env ruby
+
+require "ftools"
+require "getoptlong"
+
+$directory = false
+$owner = -1
+$group = -1
+$mode = 0755
+
+parser = GetoptLong.new
+parser.set_options(["-c", GetoptLong::NO_ARGUMENT],
+		   ["-d", "--directory", GetoptLong::NO_ARGUMENT],
+		   ["-g", "--group", GetoptLong::REQUIRED_ARGUMENT],
+		   ["-m", "--mode", GetoptLong::REQUIRED_ARGUMENT],
+		   ["-o", "--owner", GetoptLong::REQUIRED_ARGUMENT])
+
+begin
+  parser.each_option do |name, arg|
+    case name
+    when "-c"
+      # ignore
+    when "-d"
+      $directory = true
+    when "-g"
+      $group = arg.to_i
+    when "-m"
+      $mode = arg.oct
+    when "-o"
+      $owner = arg.to_i
+    end
+  end
+rescue
+  exit(1)
+end
+
+unless $src = ARGV.shift
+  $stderr.printf("%s: no input file specified\n", $0)
+  exit(1)
+end
+
+if $directory
+  $dst = $src
+  File.makedirs($dst)
+  File.chmod($mode)
+else
+  unless $dst = ARGV.shift
+    $stderr.printf("%s: no destination specified\n", $0)
+    exit(1)
+  end
+  if File.directory?($dst)
+    $dst = File.expand_path(File.basename($src), $dst)
+  end
+  File.install($src, $dst, $mode)
+end
+
+if $owner != -1 || $group != -1
+  File.chown($owner, $group, $dst)
+end
