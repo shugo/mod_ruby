@@ -1482,6 +1482,7 @@ static VALUE request_send_fd(VALUE self, VALUE io)
     int fd;
     struct stat st;
 #else
+    FILE *f;
     long bytes_sent;
 #endif
 
@@ -1489,19 +1490,29 @@ static VALUE request_send_fd(VALUE self, VALUE io)
     rb_apache_request_flush(self);    
     data = get_request_data(self);
 
+    Check_Type(io, T_FILE);
     GetOpenFile(io, fptr);
 
 #ifdef APACHE2
+#if RUBY_VERSION_CODE >= 190
+    fd = fptr->fd;
+#else
     fd = fileno(fptr->f);
+#endif
     if (apr_os_file_put(&file, &fd, 0, data->request->pool) != APR_SUCCESS) {
 	rb_raise(rb_eIOError, "apr_os_file_put() failed");
     }
-    if (fstat(fileno(fptr->f), &st) == -1) {
+    if (fstat(fd, &st) == -1) {
 	rb_sys_fail(fptr->path);
     }
     ap_send_fd(file, data->request, 0, st.st_size, &bytes_sent);
 #else
-    bytes_sent = ap_send_fd_length(fptr->f, data->request, -1);
+#if RUBY_VERSION_CODE >= 190
+    f = rb_io_stdio_file(fptr);
+#else
+    f = fptr->f;
+#endif
+    bytes_sent = ap_send_fd_length(f, data->request, -1);
 #endif
 
     return INT2NUM(bytes_sent);

@@ -1,13 +1,21 @@
-Fri Nov 19 15:24:40 2004  Shugo Maeda  <shugo@ruby-lang.org>
+Sat Dec 11 08:38:51 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* request.c (request_send_fd): check the type of self.
+
+	* request.c (request_send_fd): do not use fptf->f.
+
+	* upload.c (io_new): ditto.
+
+Fri Nov 19 15:24:40 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* ruby_config.c (ruby_cmd_restrict_directives): added new directive
 	RubyRestrictDirectives. Thanks, David Garamond.
 
-Fri Oct 15 02:09:58 2004  Shugo Maeda  <shugo@ruby-lang.org>
+Fri Oct 15 02:09:58 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* request.c (request_get_client_block): return nil if EOF.
 
-Fri Oct 15 02:08:33 2004  Shugo Maeda  <shugo@ruby-lang.org>
+Fri Oct 15 02:08:33 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* apachelib.c: added new exception Apache::AprError.
 
