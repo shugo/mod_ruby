@@ -11,7 +11,7 @@ ruby_version = @ruby_version@
 
 DESTDIR = 
 
-prefix = $(DESTDIR)@prefix@
+prefix = $(DESTDIR)@drive@@prefix@
 exec_prefix = @exec_prefix@
 bindir = @bindir@
 datadir = @datadir@
@@ -28,7 +28,8 @@ CC = @CC@
 AR = @AR@
 LD = @LD@
 RANLIB = @RANLIB@
-RUBY = $(RUBY_INSTALL_NAME)
+RUBY = @RUBY@
+RM = @RM@
 
 CFLAGS = @CFLAGS@ -I. -I$(hdrdir) $(APACHE_INCLUDES) $(LIBAPREQ_INCLUDES) @DEFS@
 LDFLAGS = @LDFLAGS@
@@ -47,15 +48,22 @@ LIBRUBYARG = @LIBRUBYARG@
 LIBRUBYARG_SHARED = @LIBRUBYARG_SHARED@
 LIBRUBYARG_STATIC = @LIBRUBYARG_STATIC@
 LIBRUBY_A = @LIBRUBY_A@
+LIBRUBY = @LIBRUBY@
 RUBY_SO_NAME = @RUBY_SO_NAME@
 
 APACHE_SRCDIR = @APACHE_SRCDIR@
 APACHE_INCLUDES = @APACHE_INCLUDES@
 APACHE_LIBEXECDIR = $(DESTDIR)@APACHE_LIBEXECDIR@
+APACHE_LIBDIR = @APACHE_LIBDIR@
+APACHE_LIBS = @APACHE_LIBS@
 APACHE_SRC_UID = @APACHE_SRC_UID@
 APACHE_SRC_GID = @APACHE_SRC_GID@
 
 LIBAPREQ_INCLUDES = @LIBAPREQ_INCLUDES@
+
+DEFFILE = @DEFFILE@
+LOCAL_LIBS = $(LIBRUBYARG) $(APACHE_LIBS)
+LIBPATH = @libpath@
 
 TARGET = @TARGET@
 
@@ -92,8 +100,7 @@ OBJS		= mod_ruby.@OBJEXT@ \
 		  apache_multipart_buffer.@OBJEXT@ \
 		  apache_cookie.@OBJEXT@
 
-.c.@OBJEXT@:
-	$(CC) $(CFLAGS) -c $<
+@COMPILE_RULES@
 
 all: $(TARGET)
 
@@ -103,15 +110,11 @@ site-install: @INSTALL_TARGET@ install-siteruby
 
 install-ruby:
 	$(INSTALL_DIR) $(rubylibdir)/apache
-	for file in $(RUBYLIBS); do \
-		$(INSTALL_DATA) $(srcdir)/lib/$$file $(rubylibdir)/$$file; \
-	done
+	$(RUBY) -e "%w!$(RUBYLIBS)!.each{|file| system(%Q!#{'$(INSTALL_DATA)'} $(srcdir)/lib/#{file} $(rubylibdir)/#{file}!)}"
 
 install-siteruby:
 	$(INSTALL_DIR) $(sitelibdir)/apache
-	for file in $(RUBYLIBS); do \
-		$(INSTALL_DATA) $(srcdir)/lib/$$file $(sitelibdir)/$$file; \
-	done
+	$(RUBY) -e "%w!$(RUBYLIBS)!.each{|file| system(%Q!#{'$(INSTALL_DATA)'} $(srcdir)/lib/#{file} $(sitelibdir)/#{file}!)}"
 
 install-static: all
 	$(INSTALL_DIR) -o $(APACHE_SRC_UID) -g $(APACHE_SRC_GID) \
@@ -134,17 +137,17 @@ install-shared: all
 	$(INSTALL_DLLIB) $(TARGET) $(APACHE_LIBEXECDIR)
 
 clean:
-	rm -f libruby.a
-	rm -f mod_ruby.so tests/mod_ruby.so
-	rm -f $(OBJS)
+	$(RM) libruby.a
+	$(RM) mod_ruby.so tests/mod_ruby.so
+	$(RM) $(OBJS)
 
 distclean: clean
-	rm -f Makefile
-	rm -f doc/Makefile
-	rm -f libruby.module
-	rm -f mod_ruby.imp
-	rm -f test.cfg
-	find . -name '*~' | xargs rm -f
+	$(RM) Makefile
+	$(RM) doc/Makefile
+	$(RM) libruby.module
+	$(RM) mod_ruby.imp
+	$(RM) test.cfg
+	find . -name '*~' | xargs $(RM)
 
 tag:
 	svn copy $(SVNREPOS)/mod_ruby/trunk \
@@ -162,9 +165,9 @@ libruby.a: $(OBJS)
 	$(RANLIB) $@
 
 mod_ruby.so: $(OBJS)
-	$(LDSHARED) $(DLDFLAGS) $(XLDFLAGS) -o $(TARGET) $(OBJS) \
-		$(LIBRUBYARG) $(LIBS)
+	@LINK_SO@
 
+### depend
 mod_ruby.@OBJEXT@: mod_ruby.c mod_ruby.h ruby_config.h apachelib.h
 ruby_config.@OBJEXT@: ruby_config.c mod_ruby.h ruby_config.h
 apachelib.@OBJEXT@: apachelib.c mod_ruby.h apachelib.h

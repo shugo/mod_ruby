@@ -93,6 +93,12 @@ if $APXS
   if $? != 0
     AC_MSG_ERROR("failed to exec #{$APXS}")
   end
+  if /mswin32/ =~ RUBY_PLATFORM
+    $APACHE_LIBDIR = `#{$APXS} -q LIBDIR 2> nul`.chomp
+  else
+    $APACHE_LIBDIR = `#{$APXS} -q LIBDIR 2> /dev/null`.chomp
+  end
+  $APACHE_LIBS = 'libapr.lib libaprutil.lib libhttpd.lib' if /mswin32/ =~ RUBY_PLATFORM
   $TARGET = "mod_ruby.so"
   $INSTALL_TARGET = "install-shared"
   AC_MSG_RESULT("yes")
@@ -117,6 +123,8 @@ AC_SUBST("INSTALL_TARGET")
 AC_SUBST("APACHE_SRCDIR")
 AC_SUBST("APACHE_INCLUDES")
 AC_SUBST("APACHE_LIBEXECDIR")
+AC_SUBST("APACHE_LIBDIR")
+AC_SUBST("APACHE_LIBS")
 AC_SUBST("APACHE_SRC_UID")
 AC_SUBST("APACHE_SRC_GID")
 
@@ -143,6 +151,8 @@ when /cygwin/
   if $INSTALL_TARGET == "install-shared"
     $LIBS += ' ' + File.join($APACHE_LIBEXECDIR, "cyghttpd.dll")
   end
+when /(ms|bcc)win32|mingw/
+  $DEFS = "-DWIN32"
 end
 
 librubyarg = $LIBRUBYARG.dup
@@ -150,9 +160,22 @@ Config.expand(librubyarg)
 $MODULE_LIBS = "#{librubyarg} #{$LIBS}"
 AC_SUBST("MODULE_LIBS")
 
+$LINK_SO = LINK_SO.gsub(/\$\(DLLIB\)/, '$(TARGET)').gsub(/\$\(DLDFLAGS\)/, '$(DLDFLAGS) $(XLDFLAGS)')
+AC_SUBST("LINK_SO")
+
+$libpath = libpathflag("$(APACHE_LIBDIR)") unless $APACHE_LIBDIR.empty?
+AC_SUBST("libpath")
+
+$DEFFILE = "mod_ruby-#{$arch}.def" if /(ms|bcc)win32|mingw32/ =~ RUBY_PLATFORM
+AC_SUBST("DEFFILE")
+
 AC_OUTPUT("Makefile",
 	  "libruby.module",
 	  "doc/Makefile")
+
+open("mod_ruby-#{$arch}.def", "w") do |file|
+  file.print ""
+end if /(ms|bcc)win32|mingw32/ =~ RUBY_PLATFORM
 
 # Local variables:
 # mode: Ruby

@@ -87,18 +87,21 @@ end
 require 'ftools'
 
 def AC_OUTPUT(*files)
+  $DEFS ||= ""
   if $AC_LIST_HEADER
-    $DEFS = "-DHAVE_CONFIG_H"
+    $DEFS << " -DHAVE_CONFIG_H"
     AC_OUTPUT_HEADER($AC_LIST_HEADER)
   else
-    $DEFS = $ac_confdefs.collect {|k, v| "-D#{k}=#{v}" }.join(" ")
+    $DEFS << " " + $ac_confdefs.collect {|k, v| "-D#{k}=#{v}" }.join(" ")
   end
   for file in files
     print "creating ", file, "\n"
     open(File.join($srcdir, file + ".in")) do |fin|
       File.makedirs(File.dirname(file))
       open(file, "w") do |fout|
+	depend = false
 	while line = fin.gets
+          depend = true if /^\#\#\# depend/ =~ line
 	  line.gsub!(/@([A-Za-z_]+)@/) do |s|
 	    name = $1
 	    if $ac_sed.key?(name)
@@ -107,6 +110,7 @@ def AC_OUTPUT(*files)
 	      s
 	    end
 	  end
+          line.gsub!(/(\s)([^\s\/]+\.[ch])/, '\1{$(srcdir)}\2') if depend && $nmake
 	  fout.print(line)
 	end
       end
@@ -178,7 +182,7 @@ def AC_CONFIG_AUX_DIRS(*dirs)
       file = File.join(dir, prog)
       if File.file?(file); then
 	$ac_aux_dir = dir
-	$ac_install_rb = "#{file} -c"
+	$ac_install_rb = "$(RUBY) #{file} -c"
 	return
       end
     end
@@ -316,6 +320,9 @@ $CC = CONFIG["CC"]
 $AR = CONFIG["AR"]
 $LD = "$(CC)"
 $RANLIB = CONFIG["RANLIB"]
+$ruby = arg_config("--ruby", File.join(Config::CONFIG["bindir"], CONFIG["ruby_install_name"]))
+$RUBY = ($nmake && !$configure_args.has_key?('--ruby')) ? $ruby.gsub(%r'/', '\\') : $ruby
+$RM = CONFIG["RM"] || '$(RUBY) -run -e rm -- -f'
 
 if not defined? CFLAGS
   CFLAGS = CONFIG["CFLAGS"]
@@ -374,6 +381,12 @@ when /-aix/
   end
 end
 
+$COMPILE_RULES = ''
+COMPILE_RULES.each do |rule|
+  $COMPILE_RULES << sprintf(rule, 'c', $OBJEXT)
+  $COMPILE_RULES << sprintf("\n\t%s\n\n", COMPILE_C)
+end
+
 AC_SUBST("srcdir")
 AC_SUBST("topdir")
 AC_SUBST("hdrdir")
@@ -400,6 +413,8 @@ AC_SUBST("CC")
 AC_SUBST("AR")
 AC_SUBST("LD")
 AC_SUBST("RANLIB")
+AC_SUBST("RUBY")
+AC_SUBST("RM")
 
 AC_SUBST("CFLAGS")
 AC_SUBST("DEFS")
@@ -412,6 +427,8 @@ AC_SUBST("LDSHARED")
 AC_SUBST("OBJEXT")
 AC_SUBST("EXEEXT")
 AC_SUBST("DLEXT")
+
+AC_SUBST("COMPILE_RULES")
 
 AC_SUBST("RUBY_INSTALL_NAME")
 AC_SUBST("LIBRUBYARG")

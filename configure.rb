@@ -65,18 +65,21 @@ end
 require 'ftools'
 
 def AC_OUTPUT(*files)
+  $DEFS ||= ""
   if $AC_LIST_HEADER
-    $DEFS = "-DHAVE_CONFIG_H"
+    $DEFS << " -DHAVE_CONFIG_H"
     AC_OUTPUT_HEADER($AC_LIST_HEADER)
   else
-    $DEFS = $ac_confdefs.collect {|k, v| "-D#{k}=#{v}" }.join(" ")
+    $DEFS << " " + $ac_confdefs.collect {|k, v| "-D#{k}=#{v}" }.join(" ")
   end
   for file in files
     print "creating ", file, "\n"
     open(File.join($srcdir, file + ".in")) do |fin|
       File.makedirs(File.dirname(file))
       open(file, "w") do |fout|
+	depend = false
 	while line = fin.gets
+          depend = true if /^\#\#\# depend/ =~ line
 	  line.gsub!(/@([A-Za-z_]+)@/) do |s|
 	    name = $1
 	    if $ac_sed.key?(name)
@@ -85,6 +88,7 @@ def AC_OUTPUT(*files)
 	      s
 	    end
 	  end
+          line.gsub!(/(\s)([^\s\/]+\.[ch])/, '\1{$(srcdir)}\2') if depend && $nmake
 	  fout.print(line)
 	end
       end
@@ -156,7 +160,7 @@ def AC_CONFIG_AUX_DIRS(*dirs)
       file = File.join(dir, prog)
       if File.file?(file); then
 	$ac_aux_dir = dir
-	$ac_install_rb = "#{file} -c"
+	$ac_install_rb = "$(RUBY) #{file} -c"
 	return
       end
     end
@@ -294,6 +298,9 @@ $CC = CONFIG["CC"]
 $AR = CONFIG["AR"]
 $LD = "$(CC)"
 $RANLIB = CONFIG["RANLIB"]
+$ruby = arg_config("--ruby", File.join(Config::CONFIG["bindir"], CONFIG["ruby_install_name"]))
+$RUBY = ($nmake && !$configure_args.has_key?('--ruby')) ? $ruby.gsub(%r'/', '\\') : $ruby
+$RM = CONFIG["RM"] || '$(RUBY) -run -e rm -- -f'
 
 if not defined? CFLAGS
   CFLAGS = CONFIG["CFLAGS"]
@@ -352,6 +359,12 @@ when /-aix/
   end
 end
 
+$COMPILE_RULES = ''
+COMPILE_RULES.each do |rule|
+  $COMPILE_RULES << sprintf(rule, 'c', $OBJEXT)
+  $COMPILE_RULES << sprintf("\n\t%s\n\n", COMPILE_C)
+end
+
 AC_SUBST("srcdir")
 AC_SUBST("topdir")
 AC_SUBST("hdrdir")
@@ -378,6 +391,8 @@ AC_SUBST("CC")
 AC_SUBST("AR")
 AC_SUBST("LD")
 AC_SUBST("RANLIB")
+AC_SUBST("RUBY")
+AC_SUBST("RM")
 
 AC_SUBST("CFLAGS")
 AC_SUBST("DEFS")
@@ -390,6 +405,8 @@ AC_SUBST("LDSHARED")
 AC_SUBST("OBJEXT")
 AC_SUBST("EXEEXT")
 AC_SUBST("DLEXT")
+
+AC_SUBST("COMPILE_RULES")
 
 AC_SUBST("RUBY_INSTALL_NAME")
 AC_SUBST("LIBRUBYARG")
@@ -490,6 +507,11 @@ if $APXS
   if $? != 0
     AC_MSG_ERROR("failed to exec #{$APXS}")
   end
+  $APACHE_LIBDIR = `#{$APXS} -q LIBDIR 2> /dev/null`.chomp
+  #if $? != 0
+  #  AC_MSG_ERROR("failed to exec #{$APXS}")
+  #end
+  $APACHE_LIBS = 'libapr.lib libaprutil.lib libhttpd.lib' if /mswin32/ =~ RUBY_PLATFORM
   $TARGET = "mod_ruby.so"
   $INSTALL_TARGET = "install-shared"
   AC_MSG_RESULT("yes")
@@ -513,6 +535,8 @@ AC_SUBST("INSTALL_TARGET")
 AC_SUBST("APACHE_SRCDIR")
 AC_SUBST("APACHE_INCLUDES")
 AC_SUBST("APACHE_LIBEXECDIR")
+AC_SUBST("APACHE_LIBDIR")
+AC_SUBST("APACHE_LIBS")
 AC_SUBST("APACHE_SRC_UID")
 AC_SUBST("APACHE_SRC_GID")
 
@@ -539,6 +563,8 @@ when /cygwin/
   if $INSTALL_TARGET == "install-shared"
     $LIBS += ' ' + File.join($APACHE_LIBEXECDIR, "cyghttpd.dll")
   end
+when /(ms|bcc)win32|mingw/
+  $DEFS = "-DWIN32"
 end
 
 librubyarg = $LIBRUBYARG.dup
@@ -546,9 +572,22 @@ Config.expand(librubyarg)
 $MODULE_LIBS = "#{librubyarg} #{$LIBS}"
 AC_SUBST("MODULE_LIBS")
 
+$LINK_SO = LINK_SO.gsub(/\$\(DLLIB\)/, '$(TARGET)').gsub(/\$\(DLDFLAGS\)/, '$(DLDFLAGS) $(XLDFLAGS)')
+AC_SUBST("LINK_SO")
+
+$libpath = libpathflag("$(APACHE_LIBDIR)") unless $APACHE_LIBDIR.empty?
+AC_SUBST("libpath")
+
+$DEFFILE = "mod_ruby-#{$arch}.def" if /(ms|bcc)win32|mingw32/ =~ RUBY_PLATFORM
+AC_SUBST("DEFFILE")
+
 AC_OUTPUT("Makefile",
 	  "libruby.module",
 	  "doc/Makefile")
+
+open("mod_ruby-#{$arch}.def", "w") do |file|
+  file.print ""
+end if /(ms|bcc)win32|mingw32/ =~ RUBY_PLATFORM
 
 # Local variables:
 # mode: Ruby
