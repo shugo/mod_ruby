@@ -1716,4 +1716,4 @@ indent-tabs-mode: t
 tab-width: 8
 end:
 
-vim: sw=8 noexpandtab
+vim: set filetype=changelog sw=8 noexpandtab :

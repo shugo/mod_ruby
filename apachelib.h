@@ -1,5 +1,5 @@
 /*
- * $Id: apachelib.h,v 1.24 2003/08/05 03:44:14 shugo Exp $
+ * $Id$
  * Copyright (C) 2000  ZetaBITS, Inc.
  * Copyright (C) 2000  Information-technology Promotion Agency, Japan
  * Copyright (C) 2000-2003  Shugo Maeda <shugo@modruby.net>
@@ -164,3 +164,5 @@ static VALUE fname(VALUE self, VALUE val) \
  * tab-width: 8
  * End:
  */
+
+/* vim: set filetype=c ts=8 sw=4 : */

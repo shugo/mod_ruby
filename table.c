@@ -1,5 +1,5 @@
 /*
- * $Id: table.c,v 1.13 2003/07/08 01:17:48 shugo Exp $
+ * $Id$
  * Copyright (C) 2001  Shugo Maeda <shugo@modruby.net>
  * All rights reserved.
  *
@@ -172,3 +172,5 @@ void rb_init_apache_table()
     rb_define_method(rb_cApacheTable, "each_key", table_each_key, 0);
     rb_define_method(rb_cApacheTable, "each_value", table_each_value, 0);
 }
+
+/* vim: set filetype=c ts=8 sw=4 : */

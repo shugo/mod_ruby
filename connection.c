@@ -1,5 +1,5 @@
 /*
- * $Id: connection.c,v 1.8 2002/03/27 05:17:20 shugo Exp $
+ * $Id$
  * Copyright (C) 2001  Shugo Maeda <shugo@modruby.net>
  * All rights reserved.
  *
@@ -143,3 +143,5 @@ void rb_init_apache_connection()
     rb_define_method(rb_cApacheConnection, "local_port",
                      connection_local_port, 0);
 }
+
+/* vim: set filetype=c ts=8 sw=4 : */

@@ -288,3 +288,5 @@ void rb_init_apache_multival()
     rb_define_alias ( rb_cApacheMultiVal, "as_array", "to_a" );
     rb_define_method( rb_cApacheMultiVal, "<=>", multival_compare, 1 );
 }
+
+/* vim: set filetype=c ts=8 sw=4 : */

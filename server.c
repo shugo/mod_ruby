@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.15 2004/06/19 02:49:47 chroottest Exp $
+ * $Id$
  * Copyright (C) 2001  Shugo Maeda <shugo@modruby.net>
  * All rights reserved.
  *
@@ -259,3 +259,5 @@ void rb_init_apache_server()
  * tab-width: 8
  * End:
  */
+
+/* vim: set filetype=c ts=8 sw=4 : */

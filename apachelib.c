@@ -1,5 +1,5 @@
 /*
- * $Id: apachelib.c,v 1.42 2004/01/27 13:53:33 shugo Exp $
+ * $Id$
  * Copyright (C) 2000  ZetaBITS, Inc.
  * Copyright (C) 2000  Information-technology Promotion Agency, Japan
  * Copyright (C) 2001-2003  Shugo Maeda <shugo@modruby.net>
@@ -410,3 +410,5 @@ void rb_init_apache()
  * tab-width: 8
  * End:
  */
+
+/* vim: set filetype=c ts=8 sw=4 : */

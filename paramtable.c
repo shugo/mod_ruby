@@ -315,3 +315,5 @@ void rb_init_apache_paramtable()
 }
 
 
+
+/* vim: set filetype=c ts=8 sw=4 : */

@@ -1,5 +1,5 @@
 /*
- * $Id: mod_ruby.h,v 1.53 2004/05/13 05:49:47 shugo Exp $
+ * $Id$
  * Copyright (C) 2000  ZetaBITS, Inc.
  * Copyright (C) 2000  Information-technology Promotion Agency, Japan
  * Copyright (C) 2000  Shugo Maeda <shugo@modruby.net>
@@ -183,3 +183,5 @@ apr_status_t ruby_call_interpreter(pool *p, ruby_interp_func_t func,
  * tab-width: 8
  * End:
  */
+
+/* vim: set filetype=c ts=8 sw=4 : */

@@ -1290,3 +1290,5 @@ static int ruby_post_read_request_handler(request_rec *r)
  * tab-width: 8
  * End:
  */
+
+/* vim: set filetype=c ts=8 sw=4 : */

@@ -212,3 +212,5 @@ void rb_init_apache_upload()
     rb_define_method( rb_cApacheUpload, "info", upload_info, 0 );
     rb_define_method( rb_cApacheUpload, "type", upload_type, 0 );
 }
+
+/* vim: set filetype=c ts=8 sw=4 : */

@@ -515,3 +515,5 @@ void rb_init_apache_cookie()
     rb_define_method( rb_cApacheCookie, "bake", cookie_bake, 0 );
     rb_define_method( rb_cApacheCookie, "to_s", cookie_to_s, 0 );
 }
+
+/* vim: set filetype=c ts=8 sw=4 : */

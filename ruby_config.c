@@ -1,5 +1,5 @@
 /*
- * $Id: ruby_config.c,v 1.33 2003/08/04 10:25:39 shugo Exp $
+ * $Id$
  * Copyright (C) 2000  ZetaBITS, Inc.
  * Copyright (C) 2000  Information-technology Promotion Agency, Japan
  * Copyright (C) 2001  Shugo Maeda <shugo@modruby.net>
@@ -415,3 +415,5 @@ const char *ruby_cmd_cleanup_handler(cmd_parms *cmd,
  * tab-width: 8
  * End:
  */
+
+/* vim: set filetype=c ts=8 sw=4 : */
