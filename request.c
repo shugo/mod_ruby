@@ -1477,6 +1477,7 @@ static VALUE request_send_fd(VALUE self, VALUE io)
     apr_size_t bytes_sent;
     apr_file_t *file;
     int fd;
+    struct stat st;
 #else
     long bytes_sent;
 #endif
@@ -1492,7 +1493,10 @@ static VALUE request_send_fd(VALUE self, VALUE io)
     if (apr_os_file_put(&file, &fd, 0, data->request->pool) != APR_SUCCESS) {
 	rb_raise(rb_eIOError, "apr_os_file_put() failed");
     }
-    ap_send_fd(file, data->request, 0, -1, &bytes_sent);
+    if (fstat(fileno(fptr->f), &st) == -1) {
+	rb_sys_fail(fptr->path);
+    }
+    ap_send_fd(file, data->request, 0, st.st_size, &bytes_sent);
 #else
     bytes_sent = ap_send_fd_length(fptr->f, data->request, -1);
 #endif

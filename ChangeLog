@@ -1,4 +1,8 @@
-Fri Sep 10 21:28:52 2004  Shugo Maeda  <shugo@ruby-lang.org>
+Sat Sep 11 01:21:17 2004  Shugo Maeda  <shugo@modruby.net>
+
+	* request.c (request_send_fd): fixed a bug really.
+
+Fri Sep 10 21:28:52 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* mod_ruby.c (ruby_init_interpreter): set $stdout.sync to true.
 
