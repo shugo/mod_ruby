@@ -35,10 +35,9 @@ VALUE rb_cApacheBucketBrigade;
 
 static VALUE bucket_new(apr_bucket *b)
 {
-    VALUE obj;
-
-    obj = Data_Wrap_Struct(rb_cApacheBucket, NULL, NULL, b);
-    return obj;
+    if (b == NULL)
+	return Qnil;
+    return Data_Wrap_Struct(rb_cApacheBucket, NULL, NULL, b);
 }
 
 static VALUE bucket_next(VALUE self)
@@ -149,6 +148,57 @@ static VALUE bucket_is_pool(VALUE self)
     return APR_BUCKET_IS_POOL(b) ? Qtrue : Qfalse;
 }
 
+VALUE rb_apache_bucket_brigade_new(apr_bucket_brigade *bb)
+{
+    return Data_Wrap_Struct(rb_cApacheBucketBrigade, NULL, NULL, bb);
+}
+
+static VALUE brigade_sentinel(VALUE self)
+{
+    apr_bucket_brigade *bb;
+
+    Data_Get_Struct(self, apr_bucket_brigade, bb);
+    return bucket_new(APR_BRIGADE_SENTINEL(bb));
+}
+
+static VALUE brigade_is_empty(VALUE self)
+{
+    apr_bucket_brigade *bb;
+
+    Data_Get_Struct(self, apr_bucket_brigade, bb);
+    return APR_BRIGADE_EMPTY(bb) ? Qtrue : Qfalse;
+}
+
+static VALUE brigade_first(VALUE self)
+{
+    apr_bucket_brigade *bb;
+
+    Data_Get_Struct(self, apr_bucket_brigade, bb);
+    return bucket_new(APR_BRIGADE_FIRST(bb));
+}
+
+static VALUE brigade_last(VALUE self)
+{
+    apr_bucket_brigade *bb;
+
+    Data_Get_Struct(self, apr_bucket_brigade, bb);
+    return bucket_new(APR_BRIGADE_LAST(bb));
+}
+
+static VALUE brigade_each(VALUE self)
+{
+    apr_bucket_brigade *bb;
+    apr_bucket *e;
+
+    Data_Get_Struct(self, apr_bucket_brigade, bb);
+    for (e = APR_BRIGADE_FIRST(bb);
+	 e != APR_BRIGADE_SENTINEL(bb);
+	 e = APR_BUCKET_NEXT(e)) {
+	rb_yield(bucket_new(e));
+    }
+    return Qnil;
+}
+
 void rb_init_apache_bucket()
 {
     rb_cApacheBucket = rb_define_class_under(rb_mApache, "Bucket", rb_cObject);
@@ -165,6 +215,15 @@ void rb_init_apache_bucket()
     rb_define_method(rb_cApacheBucket, "immortal?", bucket_is_immortal, 0);
     rb_define_method(rb_cApacheBucket, "mmap?", bucket_is_mmap, 0);
     rb_define_method(rb_cApacheBucket, "pool?", bucket_is_pool, 0);
+
+    rb_cApacheBucketBrigade =
+	rb_define_class_under(rb_mApache, "BucketBrigade", rb_cObject);
+    rb_include_module(rb_cApacheArrayHeader, rb_mEnumerable);
+    rb_define_method(rb_cApacheBucketBrigade, "sentinel", brigade_sentinel, 0);
+    rb_define_method(rb_cApacheBucketBrigade, "empty?", brigade_is_empty, 0);
+    rb_define_method(rb_cApacheBucketBrigade, "first", brigade_first, 0);
+    rb_define_method(rb_cApacheBucketBrigade, "last", brigade_last, 0);
+    rb_define_method(rb_cApacheBucketBrigade, "each", brigade_each, 0);
 }
 
 #endif
