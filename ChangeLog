@@ -1,3 +1,11 @@
+Thu Jul  1 13:31:35 2004  Shugo Maeda <shugo@modruby.net>
+
+	* mod_ruby.c (ruby_log_error_string): do not pass newlines
+	to ap_log_error().
+
+	* mod_ruby.c (ruby_startup): add the version of ruby to the Server:
+	header field.
+
 Fri May 21 00:30:40 2004  Shugo Maeda <shugo@modruby.net>
 
 	* lib/apache/erb-run.rb (compile): untaint generated codes.
@@ -1699,3 +1707,5 @@ add-log-time-format: (lambda ()
 indent-tabs-mode: t
 tab-width: 8
 end:
+
+vim: sw=8 noexpandtab
