@@ -1,6 +1,6 @@
 /*
  * multival.c - The Apache::MultiVal class
- * $Id: multival.c,v 1.3 2003/08/06 03:39:27 shugo Exp $
+ * $Id$
  *
  * Author: Michael Granger <mgranger@RubyCrafters.com>
  * Copyright (c) 2003 RubyCrafters, LLC. All rights reserved.
@@ -246,11 +246,6 @@ multival_make_delegator( VALUE name, ID which )
 /* Module initializer */
 void rb_init_apache_multival()
 {
-    static char
-        rcsid[]		= "$Id: multival.c,v 1.3 2003/08/06 03:39:27 shugo Exp $",
-        revision[]	= "$Revision: 1.3 $";
-
-    VALUE vstr		= rb_str_new( (revision+11), strlen(revision) - 11 - 2 );
     VALUE dmethods;
     VALUE args[1];
 
@@ -260,13 +255,6 @@ void rb_init_apache_multival()
 #endif
 
     rb_cApacheMultiVal = rb_define_class_under( rb_mApache, "MultiVal", rb_cObject );
-
-    /* Constants */
-    rb_obj_freeze( vstr );
-    rb_define_const( rb_cApacheMultiVal, "Version", vstr );
-    vstr = rb_str_new2( rcsid );
-    rb_obj_freeze( vstr );
-    rb_define_const( rb_cApacheMultiVal, "Rcsid", vstr );
 
     /* Define IDs which indicate to the delegator-creator whether it's supposed
        to delegate to the whole array or just the first element. */

@@ -1,6 +1,6 @@
 /*
  * paramtable.c - The Apache::ParamTable class
- * $Id: paramtable.c,v 1.4 2003/08/06 03:39:27 shugo Exp $
+ * $Id$
  *
  * Author: Michael Granger <mgranger@RubyCrafters.com>
  * Copyright (c) 2003 RubyCrafters, LLC. All rights reserved.
@@ -287,12 +287,6 @@ static VALUE paramtable_values( VALUE self )
 /* Module initializer */
 void rb_init_apache_paramtable()
 {
-    static char
-        rcsid[]		= "$Id: paramtable.c,v 1.4 2003/08/06 03:39:27 shugo Exp $",
-        revision[]	= "$Revision: 1.4 $";
-
-    VALUE vstr		= rb_str_new( (revision+11), strlen(revision) - 11 - 2 );
-
     atargs_id = rb_intern( "@args" );
 
     /* Kluge to make Rdoc see the associations in this file */
@@ -304,13 +298,6 @@ void rb_init_apache_paramtable()
 #endif
 
     rb_cApacheParamTable = rb_define_class_under( rb_mApache, "ParamTable", rb_cApacheTable );
-
-    /* Constants */
-    rb_obj_freeze( vstr );
-    rb_define_const( rb_cApacheParamTable, "Version", vstr );
-    vstr = rb_str_new2( rcsid );
-    rb_obj_freeze( vstr );
-    rb_define_const( rb_cApacheParamTable, "Rcsid", vstr );
 
     /* Remove the constructor */
     rb_undef_method ( CLASS_OF(rb_cApacheParamTable), "new" );

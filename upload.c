@@ -1,6 +1,6 @@
 /*
  * upload.c - Apache::Upload class for the Ruby binding for libapreq.
- * $Id: upload.c,v 1.7 2003/08/07 03:48:11 shugo Exp $
+ * $Id$
  *
  * Author: Michael Granger <ged@FaerieMUD.org>
  * Copyright (c) 2003 The FaerieMUD Consortium. All rights reserved.
@@ -192,25 +192,12 @@ static VALUE upload_type( VALUE self )
 /* Module initializer */
 void rb_init_apache_upload()
 {
-    static char
-        rcsid[]		= "$Id: upload.c,v 1.7 2003/08/07 03:48:11 shugo Exp $",
-        revision[]	= "$Revision: 1.7 $";
-
-    VALUE vstr		= rb_str_new( (revision+11), strlen(revision) - 11 - 2 );
-
     /* Kluge to make Rdoc see the associated classes/modules */
 #if FOR_RDOC_PARSER
     rb_mApache = rb_define_module( "Apache" );
 #endif
 
     rb_cApacheUpload = rb_define_class_under( rb_mApache, "Upload", rb_cObject );
-
-    /* Constants */
-    rb_obj_freeze( vstr );
-    rb_define_const( rb_cApacheUpload, "Version", vstr );
-    vstr = rb_str_new2( rcsid );
-    rb_obj_freeze( vstr );
-    rb_define_const( rb_cApacheUpload, "Rcsid", vstr );
 
     /* Remove the constructor, as the class requires an ApacheUpload * */
     rb_undef_method( CLASS_OF(rb_cApacheUpload), "new" );

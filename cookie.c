@@ -1,6 +1,6 @@
 /*
  * cookie.c - The Apache::Cookie class
- * $Id: cookie.c,v 1.6 2003/08/18 02:12:14 shugo Exp $
+ * $Id$
  *
  * Author: Michael Granger <mgranger@RubyCrafters.com>
  * Copyright (c) 2003 RubyCrafters, LLC. All rights reserved.
@@ -466,12 +466,6 @@ static VALUE cookie_s_new(int argc, VALUE *argv, VALUE klass)
 /* Module initializer */
 void rb_init_apache_cookie()
 {
-    static char
-        rcsid[]		= "$Id: cookie.c,v 1.6 2003/08/18 02:12:14 shugo Exp $",
-        revision[]	= "$Revision: 1.6 $";
-
-    VALUE vstr		= rb_str_new( (revision+11), strlen(revision) - 11 - 2 );
-
     id_name		= rb_intern( "name" );
     id_value	= rb_intern( "value" );
     id_expires	= rb_intern( "expires" );
@@ -489,11 +483,6 @@ void rb_init_apache_cookie()
     rb_cApacheCookie = rb_define_class_under( rb_mApache, "Cookie", rb_cObject );
 
     /* Constants */
-    rb_obj_freeze( vstr );
-    rb_define_const( rb_cApacheCookie, "Version", vstr );
-    vstr = rb_str_new2( rcsid );
-    rb_obj_freeze( vstr );
-    rb_define_const( rb_cApacheCookie, "Rcsid", vstr );
     rb_obj_freeze( cookie_date_format );
     rb_define_const( rb_cApacheCookie, "DateFormat", cookie_date_format );
 
