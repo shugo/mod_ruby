@@ -1,3 +1,8 @@
+Sun Aug 29 10:56:53 2004  NISHI Takao  <zophos@Dadd9.com>
+
+	* mod_ruby.c (mod_ruby_setenv): call ruby_unsetenv() before
+	ruby_set_env().
+
 Thu Aug 19 01:21:25 2004  Shugo Maeda  <shugo@modruby.net>
 
 	* mod_ruby.c: do not use threads on prefork MPM.

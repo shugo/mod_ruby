@@ -930,10 +930,11 @@ static void mod_ruby_clearenv()
 static void mod_ruby_setenv(const char *name, const char *value)
 {
     if (!name) return;
+
+    ruby_unsetenv(name);
+
     if (value && *value)
 	ruby_setenv(name, value);
-    else
-	ruby_unsetenv(name);
 }
 
 static void setenv_from_table(table *tbl)
