@@ -1,5 +1,5 @@
 /*
- * $Id: mod_ruby.c,v 1.86 2004/04/30 05:44:18 shugo Exp $
+ * $Id$
  * Copyright (C) 2000  ZetaBITS, Inc.
  * Copyright (C) 2000  Information-technology Promotion Agency, Japan
  * Copyright (C) 2001  Shugo Maeda <shugo@modruby.net>
@@ -547,6 +547,13 @@ static void ruby_add_path(const char *path)
 static int ruby_startup(pool *p, pool *plog, pool *ptemp, server_rec *s)
 {
     ap_add_version_component(p, MOD_RUBY_STRING_VERSION);
+#if RUBY_RELEASE_CODE > 20040624
+    {
+        char *version = apr_pstrcat(p, "Ruby/", ruby_version,
+                                    "(", ruby_release_date, ")", NULL);
+        ap_add_version_component(p, version);
+    }
+#endif
     return OK;
 }
 
@@ -555,6 +562,13 @@ static int ruby_startup(pool *p, pool *plog, pool *ptemp, server_rec *s)
 static void ruby_startup(server_rec *s, pool *p)
 {
     ap_add_version_component(MOD_RUBY_STRING_VERSION);
+#if RUBY_RELEASE_CODE > 20040624
+    {
+        char *version = ap_pstrcat(p, "Ruby/", ruby_version,
+                                   "(", ruby_release_date, ")", NULL);
+        ap_add_version_component(version);
+    }
+#endif
 }
 
 #endif
