@@ -94,6 +94,7 @@ static VALUE orig_stdout;
 #if RUBY_VERSION_CODE < 180
 static VALUE orig_defout;
 #endif
+static table *saved_env;
 
 RUBY_EXTERN VALUE rb_load_path;
 static VALUE default_load_path;
@@ -1050,6 +1051,41 @@ static int run_safely(int safe_level, int timeout,
     return state;
 }
 
+static table *save_env(pool *p)
+{
+    char **env, *k, *v;
+    table *result;
+    
+    env = GET_ENVIRON(environ);
+    result = ap_make_table(p, 1);
+    while (*env) {
+        char *s = strchr(*env, '=');
+        if (s) {
+            k = ap_pstrndup(p, *env, s - *env);
+            v = ap_pstrdup(p, s + 1);
+	    ap_table_set(result, k, v);
+        }
+        env++;
+    }
+    return result;
+}
+
+static void restore_env(pool *p, table *env)
+{
+    const array_header *hdrs_arr;
+    table_entry *hdrs;
+    int i;
+
+    mod_ruby_clearenv(p);
+    hdrs_arr = ap_table_elts(env);
+    hdrs = (table_entry *) hdrs_arr->elts;
+    for (i = 0; i < hdrs_arr->nelts; i++) {
+	if (hdrs[i].key == NULL)
+	    continue;
+	mod_ruby_setenv(hdrs[i].key, hdrs[i].val);
+    }
+}
+
 static void per_request_init(request_rec *r)
 {
     ruby_server_config *sconf;
@@ -1067,6 +1103,7 @@ static void per_request_init(request_rec *r)
 #if RUBY_VERSION_CODE < 180
     rb_defout = rb_request;
 #endif
+    saved_env = save_env(r->pool);
     if (r->filename)
 	rb_progname = rb_tainted_str_new2(r->filename);
 }
@@ -1105,6 +1142,7 @@ static void per_request_cleanup(request_rec *r, int flush)
 #endif
     }
     rb_set_kcode(default_kcode);
+    restore_env(r->pool, saved_env);
     rb_progname = Qnil;
     rb_gc();
 }
