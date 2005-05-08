@@ -206,7 +206,7 @@ multival_compare( VALUE self, VALUE other )
 static VALUE
 multival_string_delegator( int argc, VALUE *argv, VALUE self )
 {
-    ID meth = rb_frame_last_func();
+    ID meth = rb_frame_this_func();
     VALUE args = rb_iv_get( self, "@args" );
 	
     return rb_funcall2( RARRAY(args)->ptr[0], meth, argc, argv );
@@ -219,7 +219,7 @@ multival_string_delegator( int argc, VALUE *argv, VALUE self )
 static VALUE
 multival_array_delegator( int argc, VALUE *argv, VALUE self )
 {
-    ID meth = rb_frame_last_func();
+    ID meth = rb_frame_this_func();
     VALUE args = rb_iv_get( self, "@args" );
 	
     return rb_funcall2( args, meth, argc, argv );

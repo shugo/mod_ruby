@@ -36,6 +36,10 @@
 #include "util.h"
 #include "intern.h"
 
+#if RUBY_VERSION_CODE < 190 || RUBY_RELEASE_CODE <= 20050304
+#define rb_frame_this_func() rb_frame_last_func()
+#endif
+
 #if defined(_WIN32)
 #undef pid_t
 #undef uid_t

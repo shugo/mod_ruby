@@ -327,12 +327,12 @@ VALUE rb_protect_funcall(VALUE recv, ID mid, int *state, int argc, ...)
 static void get_error_pos(VALUE str)
 {
     char buff[BUFSIZ];
-    ID last_func = rb_frame_last_func();
+    ID this_func = rb_frame_this_func();
 
     if (ruby_sourcefile) {
-	if (last_func) {
+	if (this_func) {
 	    snprintf(buff, BUFSIZ, "%s:%d:in `%s'", ruby_sourcefile, ruby_sourceline,
-		     rb_id2name(last_func));
+		     rb_id2name(this_func));
 	}
 	else {
 	    snprintf(buff, BUFSIZ, "%s:%d", ruby_sourcefile, ruby_sourceline);

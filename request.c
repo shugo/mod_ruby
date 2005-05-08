@@ -382,14 +382,22 @@ static VALUE request_printf(int argc, VALUE *argv, VALUE out)
 
 static VALUE request_puts _((int, VALUE*, VALUE));
 
+#if RUBY_VERSION_CODE >= 190 && RUBY_RELEASE_CODE > 20050304
+static VALUE request_puts_ary(VALUE ary, VALUE out, int recur)
+#else
 static VALUE request_puts_ary(VALUE ary, VALUE out)
+#endif
 {
     VALUE tmp;
     int i;
 
     for (i=0; i<RARRAY(ary)->len; i++) {
 	tmp = RARRAY(ary)->ptr[i];
+#if RUBY_VERSION_CODE >= 190 && RUBY_RELEASE_CODE > 20050304
+	if (recur) {
+#else
 	if (rb_inspecting_p(tmp)) {
+#endif
 	    tmp = STRING_LITERAL("[...]");
 	}
 	request_puts(1, &tmp, out);
@@ -413,7 +421,11 @@ static VALUE request_puts(int argc, VALUE *argv, VALUE out)
 	    line = STRING_LITERAL("nil");
 	    break;
 	  case T_ARRAY:
+#if RUBY_VERSION_CODE >= 190 && RUBY_RELEASE_CODE > 20050304
+	    rb_exec_recursive(request_puts_ary, argv[i], out);
+#else
 	    rb_protect_inspect(request_puts_ary, argv[i], out);
+#endif
 	    continue;
 	  default:
 	    line = argv[i];
