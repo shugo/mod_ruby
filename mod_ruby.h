@@ -152,6 +152,7 @@ typedef struct {
     int safe_level;
     int output_mode;
     array_header *load_path;
+    table *options;
     array_header *ruby_handler;
     array_header *ruby_trans_handler;
     array_header *ruby_authen_handler;

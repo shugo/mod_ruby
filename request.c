@@ -65,6 +65,7 @@ typedef struct request_data {
     VALUE upload_table;
     VALUE cookies;
     VALUE param_table;
+    VALUE options;
 } request_data;
 
 #define REQ_SYNC_HEADER     FL_USER1
@@ -112,6 +113,7 @@ static void request_mark(request_data *data)
     rb_gc_mark(data->upload_table);
     rb_gc_mark(data->cookies);
     rb_gc_mark(data->param_table);
+    rb_gc_mark(data->options);
 }
 
 static APR_CLEANUP_RETURN_TYPE cleanup_request_object(void *data)
@@ -148,6 +150,9 @@ static VALUE apache_request_new(request_rec *r)
     ruby_dir_config *dconf = get_dir_config(r);
     request_data *data;
     VALUE obj;
+    const array_header *opts_arr;
+    table_entry *opts;
+    int i;
 
     obj = Data_Make_Struct(rb_cApacheRequest, request_data,
 			   request_mark, free, data);
@@ -170,6 +175,16 @@ static VALUE apache_request_new(request_rec *r)
     data->upload_table = rb_hash_new();
     data->cookies = rb_hash_new();
     data->param_table = Qnil;
+    data->options = rb_hash_new();
+    opts_arr = ap_table_elts(dconf->options);
+    opts = (table_entry *) opts_arr->elts;
+    for (i = 0; i < opts_arr->nelts; i++) {
+        if (opts[i].key == NULL)
+	    continue;
+	rb_hash_aset(data->options,
+		     rb_tainted_str_new2(opts[i].key),
+		     rb_tainted_str_new2(opts[i].val));
+    }
     
     rb_apache_register_object(obj);
     if (r->request_config)
@@ -1718,6 +1733,14 @@ static VALUE request_register_cleanup(int argc, VALUE *argv, VALUE self)
     return Qnil;
 }
 
+static VALUE request_options(VALUE self)
+{
+    request_data *data;
+
+    data = get_request_data(self);
+    return data->options;
+}
+
 static VALUE request_libapreq_p( VALUE klass )
 {
     return Qtrue;
@@ -2212,6 +2235,7 @@ void rb_init_apache_request()
     rb_define_method(rb_cApacheRequest, "lookup_file", request_lookup_file, 1);
     rb_define_method(rb_cApacheRequest, "register_cleanup",
 		     request_register_cleanup, -1);
+    rb_define_method(rb_cApacheRequest, "options", request_options, 0);
 
     rb_define_singleton_method(rb_cApacheRequest, "libapreq?", request_libapreq_p, 0 );
 

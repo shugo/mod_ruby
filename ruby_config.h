@@ -43,6 +43,7 @@ const char *ruby_cmd_timeout(cmd_parms*, void*, char*);
 const char *ruby_cmd_safe_level(cmd_parms*, ruby_dir_config*, char*);
 const char *ruby_cmd_output_mode(cmd_parms*, ruby_dir_config*, char*);
 const char *ruby_cmd_restrict_directives(cmd_parms*, void*, int);
+const char *ruby_cmd_option(cmd_parms*, ruby_dir_config*, char*, char*);
 const char *ruby_cmd_handler(cmd_parms*, ruby_dir_config*, char*);
 const char *ruby_cmd_trans_handler(cmd_parms*, ruby_dir_config*, char*);
 const char *ruby_cmd_authen_handler(cmd_parms*, ruby_dir_config*, char*);

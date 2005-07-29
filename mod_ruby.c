@@ -170,6 +170,8 @@ static const command_rec ruby_cmds[] =
     {"RubyRestrictDirectives", ruby_cmd_restrict_directives, NULL, 
      RSRC_CONF, FLAG,
      "whether Ruby* directives are restricted from .htaccess"},
+    {"RubyOption", ruby_cmd_option, NULL, OR_ALL, TAKE2,
+     "set option for application"},
     {"RubyHandler", ruby_cmd_handler, NULL, OR_ALL, TAKE1,
      "set ruby handler object"},
     {"RubyTransHandler", ruby_cmd_trans_handler, NULL, RSRC_CONF, TAKE1,

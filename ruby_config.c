@@ -99,6 +99,7 @@ void *ruby_create_dir_config(pool *p, char *dirname)
     conf->safe_level = default_safe_level;
     conf->output_mode = MR_OUTPUT_DEFAULT;
     conf->load_path = NULL;
+    conf->options = ap_make_table(p, 5); 
     conf->ruby_handler = NULL;
     conf->ruby_trans_handler = NULL;
     conf->ruby_authen_handler = NULL;
@@ -141,6 +142,8 @@ void *ruby_merge_dir_config(pool *p, void *basev, void *addv)
     else {
 	new->load_path = ap_append_arrays(p, base->load_path, add->load_path);
     }
+
+    new->options = ap_overlay_tables(p, add->options, base->options);
 
     new->ruby_handler =
 	merge_handlers(p, base->ruby_handler, add->ruby_handler);
@@ -392,6 +395,14 @@ const char *ruby_cmd_output_mode(cmd_parms *cmd, ruby_dir_config *conf, char *ar
     else {
 	return "unknown mode";
     }
+    return NULL;
+}
+
+const char *ruby_cmd_option(cmd_parms *cmd, ruby_dir_config *conf,
+			     char *key, char *val)
+{
+    check_restrict_directives(cmd, conf)
+    ap_table_set(conf->options, key, val);
     return NULL;
 }
 
