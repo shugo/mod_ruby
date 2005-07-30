@@ -84,12 +84,19 @@ module Apache
         return DECLINED
       end
       env = get_environment(r.options["rails-root"])
+      old_constants = Object.constants
       env.load_environment
+      # set classpath for Marshal
+      Apache::RailsDispatcher.const_set(:CURRENT_MODULE, env.module)
       @@current_environment = env
       begin
         env.eval_string("Apache::RailsDispatcher.instance.dispatch")
       ensure
         @@current_environment = nil
+        Apache::RailsDispatcher.send(:remove_const, :CURRENT_MODULE)
+        for c in Object.constants - old_constants
+          Object.send(:remove_const, c)
+        end
       end
       return OK
     end
@@ -237,7 +244,8 @@ end
 def Object.remove_const(name)
   if Apache::RailsDispatcher.current_environment
     begin
-      Apache::RailsDispatcher.current_environment.module.remove_const(name)
+      mod = Apache::RailsDispatcher.current_environment
+      mod.send(:remove_const, name)
     rescue NameError
       super(name)
     end
@@ -274,7 +282,7 @@ class Module
   alias name__ name
 
   def name
-    return name__.sub(/\A#<Module:.*?>::/, "")
+    return name__.sub(/\AApache::RailsDispatcher::CURRENT_MODULE::/, "")
   end
 
   def const_missing(class_id)
