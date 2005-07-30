@@ -38,8 +38,9 @@ Apache::RailsDispatcher dispatches requests to Rails applications.
   <Location /appname>
     SetHandler ruby-object
     RubyHandler Apache::RailsDispatcher.instance
-    RubyOption rails-uri-root /appname
-    RubyOption rails-root /path/to/rails/root
+    RubyOption rails_uri_root /appname
+    RubyOption rails_root /path/to/rails/root
+    RubyOption rails_env development
   </Location>
 
 =end
@@ -66,11 +67,11 @@ module Apache
     end
 
     def translate_uri(r)
-      return DECLINED unless r.options.key?("rails-root")
-      re = Regexp.new("\\A" + Regexp.quote(r.options["rails-uri-root"]) + "/*",
+      return DECLINED unless r.options.key?("rails_uri_root")
+      re = Regexp.new("\\A" + Regexp.quote(r.options["rails_uri_root"]) + "/*",
                       nil, "n")
       filename = File.expand_path(r.uri.sub(re, "public/"),
-                                  r.options["rails-root"])
+                                  r.options["rails_root"])
       if File.exist?(filename)
         r.filename = filename
         return OK
@@ -84,7 +85,8 @@ module Apache
         return DECLINED
       end
       r.setup_cgi_env
-      env = get_environment(r.options["rails-root"])
+      ENV["RAILS_ENV"] = r.options["rails_env"] || "development"
+      env = get_environment(r.options["rails_root"])
       env.load_environment
       # set classpath for Marshal
       Apache::RailsDispatcher.const_set(:CURRENT_MODULE, env.module)
@@ -107,7 +109,7 @@ module Apache
     def dispatch(r = Apache.request)
       begin
         ActionController::AbstractRequest.relative_url_root =
-          r.options["rails-uri-root"]
+          r.options["rails_uri_root"]
         cgi = CGI.new
         session_options = ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS
         request = ActionController::CgiRequest.new(cgi, session_options)
