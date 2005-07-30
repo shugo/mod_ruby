@@ -106,7 +106,8 @@ module Apache
       return OK
     end
 
-    def dispatch(r = Apache.request)
+    def dispatch
+      r = Apache.request
       begin
         ActionController::AbstractRequest.relative_url_root =
           r.options["rails_uri_root"]
