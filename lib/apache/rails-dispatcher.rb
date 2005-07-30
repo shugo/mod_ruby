@@ -84,7 +84,6 @@ module Apache
         return DECLINED
       end
       env = get_environment(r.options["rails-root"])
-      old_constants = Object.constants
       env.load_environment
       # set classpath for Marshal
       Apache::RailsDispatcher.const_set(:CURRENT_MODULE, env.module)
@@ -94,9 +93,12 @@ module Apache
       ensure
         @@current_environment = nil
         Apache::RailsDispatcher.send(:remove_const, :CURRENT_MODULE)
-        for c in Object.constants - old_constants
-          Object.send(:remove_const, c)
-        end
+        remove_const(:RAILS_ROOT)
+        remove_const(:RAILS_ENV)
+        remove_const(:ADDITIONAL_LOAD_PATHS)
+        remove_const(:BREAKPOINT_SERVER_PORT)
+        remove_const(:RAILS_DEFAULT_LOGGER)
+        remove_const(:Controllers)
       end
       return OK
     end
@@ -144,6 +146,13 @@ module Apache
     
     def reset_after_dispatch
       reset_application! if Dependencies.load?
+    end
+
+    def remove_const(name)
+      begin
+        Object.send(:remove_const, name)
+      rescue NameError
+      end
     end
   end
 
