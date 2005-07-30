@@ -174,7 +174,7 @@ static const command_rec ruby_cmds[] =
      "set option for application"},
     {"RubyHandler", ruby_cmd_handler, NULL, OR_ALL, TAKE1,
      "set ruby handler object"},
-    {"RubyTransHandler", ruby_cmd_trans_handler, NULL, RSRC_CONF, TAKE1,
+    {"RubyTransHandler", ruby_cmd_trans_handler, NULL, OR_ALL, TAKE1,
      "set translation handler object"},
     {"RubyAuthenHandler", ruby_cmd_authen_handler, NULL, OR_ALL, TAKE1,
      "set authentication handler object"},
