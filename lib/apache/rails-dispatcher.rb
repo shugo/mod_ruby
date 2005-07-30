@@ -34,10 +34,10 @@ Apache::RailsDispatcher dispatches requests to Rails applications.
 
   RubySafeLevel 0
   RubyRequire apache/rails-dispatcher
+  RubyTransHandler Apache::RailsDispatcher.instance
   <Location /appname>
     SetHandler ruby-object
     RubyHandler Apache::RailsDispatcher.instance
-    RubyTransHandler Apache::RailsDispatcher.instance
     RubyOption rails-uri-root /appname
     RubyOption rails-root /path/to/rails/root
   </Location>
@@ -83,6 +83,7 @@ module Apache
         File.file?(r.filename)
         return DECLINED
       end
+      r.setup_cgi_env
       env = get_environment(r.options["rails-root"])
       env.load_environment
       # set classpath for Marshal
@@ -107,7 +108,6 @@ module Apache
       begin
         ActionController::AbstractRequest.relative_url_root =
           r.options["rails-uri-root"]
-        r.setup_cgi_env
         cgi = CGI.new
         session_options = ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS
         request = ActionController::CgiRequest.new(cgi, session_options)
@@ -132,9 +132,8 @@ module Apache
     end
 
     def reset_application!
-      #Controllers.clear!
-      Dependencies.clear
       @@environments.delete(@@current_environment.rails_root)
+      Dependencies.clear
     end
     
     def prepare_application
@@ -184,7 +183,6 @@ module Apache
         eval_string(File.read(file), file, 1)
         return true
       rescue Errno::ENOENT => e
-        raise filename if filename =~ /apache/
         raise LoadError.new("no such file to load -- #{filename}")
       end
     end
@@ -313,6 +311,23 @@ class Module
       end
     rescue LoadError => e
       raise NameError.new("uninitialized constant #{class_id}").copy_blame!(e)
+    end
+  end
+end
+
+class << Marshal
+  alias load__ load
+
+  def load(*args)
+    begin
+      return load__(*args)
+    rescue ArgumentError => e
+      name = e.message.slice(/undefined class\/module Apache::RailsDispatcher::CURRENT_MODULE::(\w+)/u, 1)
+      if name
+        raise ArgumentError.new("undefined class/module #{name}")
+      else
+        raise
+      end
     end
   end
 end
