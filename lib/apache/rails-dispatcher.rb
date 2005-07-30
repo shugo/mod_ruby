@@ -72,7 +72,7 @@ module Apache
                       nil, "n")
       filename = File.expand_path(r.uri.sub(re, "public/"),
                                   r.options["rails_root"])
-      if File.exist?(filename)
+      if File.file?(filename)
         r.filename = filename
         return OK
       end
