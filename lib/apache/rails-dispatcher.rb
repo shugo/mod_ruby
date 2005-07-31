@@ -86,6 +86,7 @@ module Apache
       end
       r.setup_cgi_env
       ENV["RAILS_ENV"] = r.options["rails_env"] || "development"
+      Dependencies.mechanism = :load
       env = get_environment(r.options["rails_root"])
       env.load_environment
       # set classpath for Marshal
@@ -127,11 +128,11 @@ module Apache
     private
 
     def get_environment(rails_root)
-      app = @@environments[rails_root]
-      unless app
-        app = @@environments[rails_root] = RailsEnvironment.new(rails_root)
+      env = @@environments[rails_root]
+      unless env
+        env = @@environments[rails_root] = RailsEnvironment.new(rails_root)
       end
-      return app
+      return env
     end
 
     def reset_application!
@@ -224,7 +225,20 @@ module Apache
   end
 end
 
+module Dependencies
+  def require_or_load(file_name)
+    file_name = "#{file_name}.rb" unless ! load? || file_name[-3..-1] == '.rb'
+    env = Apache::RailsDispatcher.current_environment
+    if env
+      load? ? env.load_file(file_name) : env.require_file(file_name)
+    else
+      load? ? load(file_name) : require(file_name)
+    end
+  end
+end
+
 def Object.const_get(name)
+  return super(name) if self != Object
   if Apache::RailsDispatcher.current_environment
     mod = Apache::RailsDispatcher.current_environment.module
     if mod.const_defined?(name)
@@ -235,6 +249,7 @@ def Object.const_get(name)
 end
 
 def Object.const_defined?(name)
+  return super(name) if self != Object
   if Apache::RailsDispatcher.current_environment
     return super(name) ||
       Apache::RailsDispatcher.current_environment.module.const_defined?(name)
@@ -244,6 +259,7 @@ def Object.const_defined?(name)
 end
 
 def Object.const_set(name, val)
+  return super(name, val) if self != Object
   if Apache::RailsDispatcher.current_environment
     Apache::RailsDispatcher.current_environment.module.const_set(name, val)
   else
@@ -252,6 +268,7 @@ def Object.const_set(name, val)
 end
 
 def Object.remove_const(name)
+  return super(name) if self != Object
   if Apache::RailsDispatcher.current_environment
     begin
       mod = Apache::RailsDispatcher.current_environment
@@ -261,30 +278,6 @@ def Object.remove_const(name)
     end
   else
     super(name)
-  end
-end
-
-class Object
-  def load(filename)
-    if Apache::RailsDispatcher.current_environment
-      Apache::RailsDispatcher.current_environment.load_file(filename)
-    else
-      super(filename)
-    end
-  rescue Exception => e
-    e.blame_file!(filename)
-    raise
-  end
-
-  def require(filename)
-    if Apache::RailsDispatcher.current_environment
-      Apache::RailsDispatcher.current_environment.require_file(filename)
-    else
-      super(filename)
-    end
-  rescue Exception => e
-    e.blame_file!(filename)
-    raise
   end
 end
 
