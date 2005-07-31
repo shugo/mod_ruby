@@ -59,6 +59,10 @@ module Apache
   class RailsDispatcher
     include Singleton
 
+    DEFAULT_COLORIZE_LOGGING = ActiveRecord::Base.colorize_logging
+    DEFAULT_SESSION_OPTIONS =
+      ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.dup
+
     @@environments = {}
     @@current_environment = nil
 
@@ -103,6 +107,8 @@ module Apache
         remove_const(:BREAKPOINT_SERVER_PORT)
         remove_const(:RAILS_DEFAULT_LOGGER)
         remove_const(:Controllers)
+        ActiveRecord::Base.colorize_logging = DEFAULT_COLORIZE_LOGGING 
+        ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.replace(DEFAULT_SESSION_OPTIONS)
       end
       return OK
     end
