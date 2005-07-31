@@ -95,11 +95,13 @@ module Apache
       env.load_environment
       # set classpath for Marshal
       Apache::RailsDispatcher.const_set(:CURRENT_MODULE, env.module)
+      Dependencies.loaded = env.loaded_dependencies
       @@current_environment = env
       begin
         env.eval_string("Apache::RailsDispatcher.instance.dispatch")
       ensure
         @@current_environment = nil
+        env.loaded_dependencies = Dependencies.loaded
         Apache::RailsDispatcher.send(:remove_const, :CURRENT_MODULE)
         remove_const(:RAILS_ROOT)
         remove_const(:RAILS_ENV)
@@ -167,12 +169,14 @@ module Apache
 
   class RailsEnvironment
     attr_reader :rails_root, :binding, :module, :loaded_files
+    attr_accessor :loaded_dependencies
 
     def initialize(rails_root)
       @rails_root = rails_root
       @binding = eval_string_wrap("binding")
       @module = setup_module
       @loaded_files = Set.new
+      @loaded_dependencies = []
     end
 
     def eval_string(s, filename = "(eval)", lineno = 1)
