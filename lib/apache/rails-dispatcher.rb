@@ -101,7 +101,9 @@ module Apache
         env.eval_string("Apache::RailsDispatcher.instance.dispatch")
       ensure
         @@current_environment = nil
-        env.loaded_dependencies = Dependencies.loaded
+        env.loaded_dependencies = Dependencies.loaded.reject { |filename|
+          /\Aenvironments\//.match(filename)
+        }
         Apache::RailsDispatcher.send(:remove_const, :CURRENT_MODULE)
         remove_const(:RAILS_ROOT)
         remove_const(:RAILS_ENV)
