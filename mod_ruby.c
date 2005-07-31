@@ -1220,7 +1220,7 @@ static void *ruby_handler_internal(handler_internal_arg_t *iarg)
     iarg->retval = DECLINED;
 
     per_request_init(r);
-    for (i = handlers_len - 1; i >= 0; i--) {
+    for (i = 0; i < handlers_len; i++) {
 	arg.r = r;
 	arg.handler = handlers[i];
 	arg.mid = mid;
