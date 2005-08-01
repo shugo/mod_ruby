@@ -139,7 +139,9 @@ module Apache
         return DECLINED
       end
       r.setup_cgi_env
+      Object.const_set(:RAILS_ROOT, r.options["rails_root"])
       ENV["RAILS_ENV"] = r.options["rails_env"] || "development"
+      Object.const_set(:RAILS_ENV, ENV["RAILS_ENV"])
       Dependencies.mechanism = :load
       env = get_environment(r.options["rails_root"])
       # set classpath for Marshal
@@ -160,6 +162,8 @@ module Apache
         env.remove_const(:RAILS_DEFAULT_LOGGER)
         env.remove_const(:Controllers)
         env.remove_const(:BREAKPOINT_SERVER_PORT)
+        Object.remove_const(:RAILS_ROOT)
+        Object.remove_const(:RAILS_ENV)
         reset_configurations
       end
       return OK
@@ -229,7 +233,6 @@ module Apache
         @module = setup_module
         @loaded_files = Set.new
         @loaded_dependencies = []
-        @loading_environment = false
       end
 
       def eval_string(s, filename = "(eval)", lineno = 1)
@@ -239,16 +242,10 @@ module Apache
       def load_environment
         environment_path = File.expand_path("config/environment.rb",
                                             @rails_root)
-        @loading_environment = true
-        begin
-          load_file(environment_path)
-        ensure
-          @loading_environment = false
-        end
+        load_file(environment_path)
       end
 
       def load_file(filename)
-        return Kernel.load(filename) if @loading_environment
         file = $:.collect { |dir|
           File.expand_path(filename, dir)
         }.detect { |f| File.exist?(f) } || filename
@@ -261,7 +258,6 @@ module Apache
       end
 
       def require_file(filename)
-        return Kernel.require(filename) if @loading_environment
         if @loaded_files.include?(filename) || $:.include?(filename) ||
           $".include?(filename + ".rb") || $".include?(filename + ".so")
           return false
@@ -294,72 +290,10 @@ module Apache
         mod.send(:define_method, :load) do |filename|
           env.load_file(filename)
         end
-        mod.send(:define_method, :require) do |filename|
-          env.require_file(filename)
-        end
+#        mod.send(:define_method, :require) do |filename|
+#          env.require_file(filename)
+#        end
         return mod
-      end
-    end
-
-    class ConstantDelegator
-      def initialize(name)
-        @name = name
-      end
-
-      def method_missing(mid, *args)
-        return get_value.send(mid, *args)
-      end
-
-      private
-
-      def get_value
-        env = Apache::RailsDispatcher.current_environment
-        return env.module.const_get(@name)
-      end
-    end
-
-    class StringConstantDelegator < ConstantDelegator
-      alias to_s get_value
-      alias to_str get_value
-    end
-
-    class IntegerConstantDelegator < ConstantDelegator
-      alias to_int get_value
-    end
-  end
-end
-
-RAILS_ROOT = Apache::RailsDispatcher::StringConstantDelegator.new(:RAILS_ROOT)
-RAILS_ENV = Apache::RailsDispatcher::StringConstantDelegator.new(:RAILS_ENV)
-RAILS_DEFAULT_LOGGER = Apache::RailsDispatcher::ConstantDelegator.new(:RAILS_DEFAULT_LOGGER)
-Controllers = Apache::RailsDispatcher::ConstantDelegator.new(:Controllers)
-
-module ActiveRecord
-  class Base
-    def self.establish_connection(spec = nil)
-      case spec
-        when nil
-          raise AdapterNotSpecified unless defined? RAILS_ENV
-          establish_connection(RAILS_ENV)
-        when ConnectionSpecification
-          @@defined_connections[self] = spec
-        when Symbol, String
-          if configuration = configurations[spec.to_s]
-            establish_connection(configuration)
-          else
-            raise AdapterNotSpecified, "#{spec} database is not configured"
-          end
-        else
-          begin
-            establish_connection(spec.to_str)
-          rescue NoMethodError
-            spec = spec.symbolize_keys
-            unless spec.key?(:adapter) then raise AdapterNotSpecified, "database configuration does not specify adapter" end
-            adapter_method = "#{spec[:adapter]}_connection"
-            unless respond_to?(adapter_method) then raise AdapterNotFound, "database configuration specifies nonexistent #{spec[:adapter]} adapter" end
-            remove_connection
-            establish_connection(ConnectionSpecification.new(spec, adapter_method))
-          end
       end
     end
   end
@@ -433,9 +367,11 @@ class Module
     unless env
       super(class_id)
     end
-    if Object.const_defined?(:Controllers) &&
-      self != Controllers &&
-      Controllers.const_available?(class_id)
+    if env.module.const_defined?(class_id)
+      return env.module.const_get(class_id)
+    end
+    if class_id != :Controllers && Object.const_defined?(:Controllers) &&
+      self != Controllers && Controllers.const_available?(class_id)
       return Controllers.const_get(class_id)
     end
     begin
