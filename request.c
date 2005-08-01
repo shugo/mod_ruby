@@ -119,17 +119,19 @@ static void request_mark(request_data *data)
 static APR_CLEANUP_RETURN_TYPE cleanup_request_object(void *data)
 {
     request_rec *r = (request_rec *) data;
+    ruby_request_config *rconf;
     VALUE reqobj;
 
     if (r->request_config == NULL)
 	APR_CLEANUP_RETURN_SUCCESS();
-    reqobj = (VALUE) ap_get_module_config(r->request_config, &ruby_module);
-    if (reqobj == 0) APR_CLEANUP_RETURN_SUCCESS();
+    rconf = get_request_config(r);
+    if (rconf == NULL) APR_CLEANUP_RETURN_SUCCESS();
+    reqobj = rconf->request_object;
     if (TYPE(reqobj) == T_DATA) {
 	free(RDATA(reqobj)->data);
 	RDATA(reqobj)->data = NULL;
     }
-    ap_set_module_config(r->request_config, &ruby_module, 0);
+    ap_set_module_config(r->request_config, &ruby_module, NULL);
 #if APR_HAS_THREADS
     if (ruby_is_threaded_mpm) {
 	ruby_call_interpreter(r->pool,
@@ -187,8 +189,10 @@ static VALUE apache_request_new(request_rec *r)
     }
     
     rb_apache_register_object(obj);
-    if (r->request_config)
-	ap_set_module_config(r->request_config, &ruby_module, (void *) obj);
+    if (r->request_config) {
+	ruby_request_config *rconf = get_request_config(r);
+	rconf->request_object = obj;
+    }
     ap_register_cleanup(r->pool, (void *) r,
 			cleanup_request_object, ap_null_cleanup);
     if (dconf) {
@@ -210,13 +214,11 @@ static VALUE apache_request_new(request_rec *r)
 
 VALUE rb_get_request_object(request_rec *r)
 {
-    VALUE reqobj;
-
     if (r == NULL) return Qnil;
     if (r->request_config) {
-	reqobj = (VALUE) ap_get_module_config(r->request_config, &ruby_module);
-	if (reqobj)
-	    return reqobj;
+	ruby_request_config *rconf = get_request_config(r);
+	if (!NIL_P(rconf->request_object))
+	    return rconf->request_object;
     }
     return apache_request_new(r);
 }

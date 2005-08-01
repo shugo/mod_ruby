@@ -173,6 +173,11 @@ typedef struct {
     ruby_dir_config *dir_config;
 } ruby_library_context;
 
+typedef struct {
+    table *saved_env;
+    VALUE request_object;
+} ruby_request_config;
+
 #define MR_DEFAULT_TIMEOUT 270
 #define MR_DEFAULT_SAFE_LEVEL 1
 #define MR_DEFAULT_RESTRICT_DIRECTIVES 0
@@ -214,6 +219,9 @@ void mod_ruby_setup_loadpath(ruby_server_config *sconf,
 	   ((ruby_dir_config *) ap_get_module_config(r->per_dir_config, \
 						    &ruby_module)) : \
 	   NULL)
+#define get_request_config(r) \
+	((ruby_request_config *) ap_get_module_config(r->request_config, \
+						     &ruby_module))
 
 #if APR_HAS_THREADS
 typedef void *(*ruby_interp_func_t)(void*);

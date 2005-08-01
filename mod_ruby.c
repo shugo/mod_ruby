@@ -94,7 +94,6 @@ static VALUE orig_stdout;
 #if RUBY_VERSION_CODE < 180
 static VALUE orig_defout;
 #endif
-static table *saved_env;
 
 RUBY_EXTERN VALUE rb_load_path;
 static VALUE default_load_path;
@@ -510,13 +509,15 @@ void ruby_log_error_string(server_rec *s, VALUE errmsg)
 
 static void handle_error(request_rec *r, int state)
 {
-    VALUE errmsg, reqobj;
+    ruby_request_config *rconf;
+    VALUE errmsg;
 
     errmsg = ruby_get_error_info(state);
     if (r->request_config) {
-	reqobj = (VALUE) ap_get_module_config(r->request_config, &ruby_module);
-	if (reqobj)
-	    rb_apache_request_set_error(reqobj, errmsg, ruby_errinfo);
+	rconf = get_request_config(r);
+	if (!NIL_P(rconf->request_object))
+	    rb_apache_request_set_error(rconf->request_object,
+					errmsg, ruby_errinfo);
     }
     ruby_log_error_string(r->server, errmsg);
 }
@@ -1090,9 +1091,16 @@ static void restore_env(pool *p, table *env)
 
 static void per_request_init(request_rec *r)
 {
+    ruby_request_config *rconf;
     ruby_server_config *sconf;
     ruby_dir_config *dconf;
 
+    if (r->request_config) {
+	rconf = ap_palloc(r->pool, sizeof(ruby_request_config));
+	rconf->saved_env = save_env(r->pool);
+	rconf->request_object = Qnil;
+	ap_set_module_config(r->request_config, &ruby_module, rconf);
+    }
     dconf = get_dir_config(r);
     sconf = get_server_config(r->server);
     mod_ruby_setup_loadpath(sconf, dconf);
@@ -1105,7 +1113,6 @@ static void per_request_init(request_rec *r)
 #if RUBY_VERSION_CODE < 180
     rb_defout = rb_request;
 #endif
-    saved_env = save_env(r->pool);
     if (r->filename)
 	rb_progname = rb_tainted_str_new2(r->filename);
 }
@@ -1144,7 +1151,10 @@ static void per_request_cleanup(request_rec *r, int flush)
 #endif
     }
     rb_set_kcode(default_kcode);
-    restore_env(r->pool, saved_env);
+    if (r->request_config) {
+	ruby_request_config *rconf = get_request_config(r);
+	restore_env(r->pool, rconf->saved_env);
+    }
     rb_progname = Qnil;
     rb_gc();
 }
