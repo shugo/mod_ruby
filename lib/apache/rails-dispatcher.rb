@@ -59,60 +59,6 @@ module Apache
   class RailsDispatcher
     include Singleton
 
-    CONFIGURATIONS = {
-      ActiveRecord::Base => [
-        :logger,
-        :primary_key_prefix_type,
-        :table_name_prefix,
-        :table_name_suffix,
-        :pluralize_table_names,
-        :colorize_logging,
-        :default_timezone,
-        :lock_optimistically,
-        :record_timestamps,
-      ],
-      ActiveRecord::Errors => [
-        :default_error_messages,
-      ],
-      ActionController::Base => [
-        :asset_host,
-        :view_controller_internals,
-        :consider_all_requests_local,
-        :debug_routes,
-        :logger,
-        :template_root,
-        :template_class,
-        :ignore_missing_templates,
-        :perform_caching,
-        :page_cache_directory,
-        :page_cache_extension,
-        :fragment_cache_store,
-      ],
-      ActionView::Base => [
-        :cache_template_loading,
-        :field_error_proc,
-      ],
-      ActionMailer::Base => [
-        :template_root,
-        :logger,
-        :server_settings,
-        :raise_delivery_errors,
-        :delivery_method,
-        :perform_deliveries,
-        :default_charset,
-      ],
-    }
-    DEFAULT_CONFIGURATIONS = CONFIGURATIONS.inject({}) {
-      |defaults, (target_class, names)|
-      defaults[target_class] = names.inject({}) { |defs, name|
-        defs[name] = target_class.send(name)
-        defs
-      }
-      defaults
-    }
-    DEFAULT_SESSION_OPTIONS =
-      ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.dup
-
     @@environments = {}
     @@current_environment = nil
 
@@ -156,12 +102,6 @@ module Apache
           /\Aenvironments\//.match(filename)
         }
         Apache::RailsDispatcher.send(:remove_const, :CURRENT_MODULE)
-        env.remove_const(:RAILS_ROOT)
-        env.remove_const(:RAILS_ENV)
-        env.remove_const(:ADDITIONAL_LOAD_PATHS)
-        env.remove_const(:RAILS_DEFAULT_LOGGER)
-        env.remove_const(:Controllers)
-        env.remove_const(:BREAKPOINT_SERVER_PORT)
         Object.remove_const(:RAILS_ROOT)
         Object.remove_const(:RAILS_ENV)
         reset_configurations
@@ -171,7 +111,12 @@ module Apache
 
     def dispatch
       r = Apache.request
+      old_constants = @@current_environment.module.constants
       @@current_environment.load_environment
+      conf_constants =
+        (@@current_environment.module.constants - old_constants).select { |c|
+        /\A([A-Z_]+|Controllers)\z/.match(c)
+      }
       begin
         ActionController::AbstractRequest.relative_url_root =
           r.options["rails_uri_root"]
@@ -184,6 +129,9 @@ module Apache
       rescue Exception => exception
         ActionController::Base.process_with_exception(request, response, exception).out(r)
       ensure
+        for c in conf_constants
+          @@current_environment.remove_const(c)
+        end
         reset_after_dispatch
       end
     end
@@ -216,12 +164,38 @@ module Apache
 
     def reset_configurations
       for target_class, defaults in DEFAULT_CONFIGURATIONS
-        for name, val in defaults
-          target_class.send(name.to_s + "=", val)
+        for setter, val in defaults
+          target_class.send(setter, val)
         end
       end
       ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.replace(DEFAULT_SESSION_OPTIONS)
     end
+
+    def self.get_configuration_methods(target_class)
+      return target_class.singleton_methods.collect { |m|
+        m.slice(/(\w+)=\z/n, 1)
+      }.reject { |m|
+        m.nil? || /\A(connection|table_name|timestamps_gmt)\z/.match(m)
+      }
+    end
+
+    DEFAULT_CONFIGURATIONS = [
+      ActiveRecord::Base,
+      ActiveRecord::Errors,
+      ActionController::Base,
+      ActionView::Base,
+      ActionMailer::Base,
+    ].inject({}) { |defaults, target_class|
+      getters = get_configuration_methods(target_class)
+      defaults[target_class] = getters.inject({}) { |defs, getter|
+        defs[getter + "="] = target_class.send(getter)
+        defs
+      }
+      defaults
+    }
+    DEFAULT_SESSION_OPTIONS =
+      ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.dup
+
 
     class Environment
       attr_reader :rails_root, :binding, :module, :loaded_files
