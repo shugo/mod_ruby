@@ -59,7 +59,57 @@ module Apache
   class RailsDispatcher
     include Singleton
 
-    DEFAULT_COLORIZE_LOGGING = ActiveRecord::Base.colorize_logging
+    CONFIGURATIONS = {
+      ActiveRecord::Base => [
+        :logger,
+        :primary_key_prefix_type,
+        :table_name_prefix,
+        :table_name_suffix,
+        :pluralize_table_names,
+        :colorize_logging,
+        :default_timezone,
+        :lock_optimistically,
+        :record_timestamps,
+      ],
+      ActiveRecord::Errors => [
+        :default_error_messages,
+      ],
+      ActionController::Base => [
+        :asset_host,
+        :view_controller_internals,
+        :consider_all_requests_local,
+        :debug_routes,
+        :logger,
+        :template_root,
+        :template_class,
+        :ignore_missing_templates,
+        :perform_caching,
+        :page_cache_directory,
+        :page_cache_extension,
+        :fragment_cache_store,
+      ],
+      ActionView::Base => [
+        :cache_template_loading,
+        :field_error_proc,
+      ],
+      ActionMailer::Base => [
+        :template_root,
+        :logger,
+        :server_settings,
+        :raise_delivery_errors,
+        :delivery_method,
+        :perform_deliveries,
+        :default_charset,
+      ],
+    }
+    DEFAULT_CONFIGURATIONS = CONFIGURATIONS.inject({}) {
+      |defaults, (target_class, names)|
+      defaults[target_class] = names.inject({}) { |defs, name|
+        defs[name] = target_class.send(name)
+        defs
+      }
+      defaults
+    }
     DEFAULT_SESSION_OPTIONS =
       ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.dup
 
@@ -111,10 +161,7 @@ module Apache
         remove_const(:BREAKPOINT_SERVER_PORT)
         remove_const(:RAILS_DEFAULT_LOGGER)
         remove_const(:Controllers)
-        ActiveRecord::Base.colorize_logging = DEFAULT_COLORIZE_LOGGING 
-        ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.replace(DEFAULT_SESSION_OPTIONS)
-        [ActiveRecord, ActionController, ActionMailer].each { |mod| mod::Base.logger = nil }
-        [ActionController, ActionMailer].each { |mod| mod::Base.template_root = nil }
+        reset_configurations
       end
       return OK
     end
@@ -168,6 +215,15 @@ module Apache
         Object.send(:remove_const, name)
       rescue NameError
       end
+    end
+
+    def reset_configurations
+      for target_class, defaults in DEFAULT_CONFIGURATIONS
+        for name, val in defaults
+          target_class.send(name.to_s + "=", val)
+        end
+      end
+      ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.replace(DEFAULT_SESSION_OPTIONS)
     end
   end
 
