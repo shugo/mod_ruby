@@ -142,7 +142,6 @@ module Apache
       ENV["RAILS_ENV"] = r.options["rails_env"] || "development"
       Dependencies.mechanism = :load
       env = get_environment(r.options["rails_root"])
-      env.load_environment
       # set classpath for Marshal
       Apache::RailsDispatcher.const_set(:CURRENT_MODULE, env.module)
       Dependencies.loaded = env.loaded_dependencies
@@ -155,12 +154,12 @@ module Apache
           /\Aenvironments\//.match(filename)
         }
         Apache::RailsDispatcher.send(:remove_const, :CURRENT_MODULE)
-        remove_const(:RAILS_ROOT)
-        remove_const(:RAILS_ENV)
-        remove_const(:ADDITIONAL_LOAD_PATHS)
-        remove_const(:BREAKPOINT_SERVER_PORT)
-        remove_const(:RAILS_DEFAULT_LOGGER)
-        remove_const(:Controllers)
+        env.remove_const(:RAILS_ROOT)
+        env.remove_const(:RAILS_ENV)
+        env.remove_const(:ADDITIONAL_LOAD_PATHS)
+        env.remove_const(:RAILS_DEFAULT_LOGGER)
+        env.remove_const(:Controllers)
+        env.remove_const(:BREAKPOINT_SERVER_PORT)
         reset_configurations
       end
       return OK
@@ -168,6 +167,7 @@ module Apache
 
     def dispatch
       r = Apache.request
+      @@current_environment.load_environment
       begin
         ActionController::AbstractRequest.relative_url_root =
           r.options["rails_uri_root"]
@@ -193,11 +193,6 @@ module Apache
       end
       return env
     end
-
-    def reset_application!
-      @@environments.delete(@@current_environment.rails_root)
-      Dependencies.clear
-    end
     
     def prepare_application
       ActionController::Routing::Routes.reload if Dependencies.load?
@@ -210,11 +205,9 @@ module Apache
       reset_application! if Dependencies.load?
     end
 
-    def remove_const(name)
-      begin
-        Object.send(:remove_const, name)
-      rescue NameError
-      end
+    def reset_application!
+      @@environments.delete(@@current_environment.rails_root)
+      Dependencies.clear
     end
 
     def reset_configurations
@@ -225,72 +218,149 @@ module Apache
       end
       ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.replace(DEFAULT_SESSION_OPTIONS)
     end
-  end
 
-  class Environment
-    attr_reader :rails_root, :binding, :module, :loaded_files
-    attr_accessor :loaded_dependencies
+    class Environment
+      attr_reader :rails_root, :binding, :module, :loaded_files
+      attr_accessor :loaded_dependencies
 
-    def initialize(rails_root)
-      @rails_root = rails_root
-      @binding = eval_string_wrap("binding")
-      @module = setup_module
-      @loaded_files = Set.new
-      @loaded_dependencies = []
-    end
-
-    def eval_string(s, filename = "(eval)", lineno = 1)
-      eval(s, @binding, filename, lineno)
-    end
-
-    def load_environment
-      environment_path = File.expand_path("config/environment.rb",
-                                          @rails_root)
-      Kernel.load(environment_path)
-    end
-
-    def load_file(filename)
-      file = $:.collect { |dir|
-        File.expand_path(filename, dir)
-      }.detect { |f| File.exist?(f) } || filename
-      begin
-        eval_string(File.read(file), file, 1)
-        return true
-      rescue Errno::ENOENT => e
-        raise LoadError.new("no such file to load -- #{filename}")
+      def initialize(rails_root)
+        @rails_root = rails_root
+        @binding = eval_string_wrap("binding")
+        @module = setup_module
+        @loaded_files = Set.new
+        @loaded_dependencies = []
+        @loading_environment = false
       end
-    end
 
-    def require_file(filename)
-      if @loaded_files.include?(filename) || $:.include?(filename) ||
-        $".include?(filename + ".rb") || $".include?(filename + ".so")
-        return false
+      def eval_string(s, filename = "(eval)", lineno = 1)
+        eval(s, @binding, filename, lineno)
       end
-      begin
-        load_file(filename)
-      rescue LoadError
+
+      def load_environment
+        environment_path = File.expand_path("config/environment.rb",
+                                            @rails_root)
+        @loading_environment = true
         begin
-          load_file(filename + ".rb")
-        rescue LoadError
-          Kernel.require(filename)
+          load_file(environment_path)
+        ensure
+          @loading_environment = false
         end
       end
-      @loaded_files.add(filename)
-      return true
+
+      def load_file(filename)
+        return Kernel.load(filename) if @loading_environment
+        file = $:.collect { |dir|
+          File.expand_path(filename, dir)
+        }.detect { |f| File.exist?(f) } || filename
+        begin
+          eval_string(File.read(file), file, 1)
+          return true
+        rescue Errno::ENOENT => e
+          raise LoadError.new("no such file to load -- #{filename}")
+        end
+      end
+
+      def require_file(filename)
+        return Kernel.require(filename) if @loading_environment
+        if @loaded_files.include?(filename) || $:.include?(filename) ||
+          $".include?(filename + ".rb") || $".include?(filename + ".so")
+          return false
+        end
+        begin
+          load_file(filename)
+        rescue LoadError
+          begin
+            load_file(filename + ".rb")
+          rescue LoadError
+            Kernel.require(filename)
+          end
+        end
+        @loaded_files.add(filename)
+        return true
+      end
+
+      def remove_const(name)
+        begin
+          @module.send(:remove_const, name)
+        rescue NameError
+        end
+      end
+
+      private
+
+      def setup_module
+        mod = eval_string("class << self; self; end.ancestors.first")
+        env = self
+        mod.send(:define_method, :load) do |filename|
+          env.load_file(filename)
+        end
+        mod.send(:define_method, :require) do |filename|
+          env.require_file(filename)
+        end
+        return mod
+      end
     end
 
-    private
+    class ConstantDelegator
+      def initialize(name)
+        @name = name
+      end
 
-    def setup_module
-      mod = eval_string("class << self; self; end.ancestors.first")
-      env = self
-      mod.send(:define_method, :load) do |filename|
-        env.load_file(filename)
+      def method_missing(mid, *args)
+        return get_value.send(mid, *args)
       end
-      mod.send(:define_method, :require) do |filename|
-        env.require_file(filename)
+
+      private
+
+      def get_value
+        env = Apache::RailsDispatcher.current_environment
+        return env.module.const_get(@name)
       end
-      return mod
+    end
+
+    class StringConstantDelegator < ConstantDelegator
+      alias to_s get_value
+      alias to_str get_value
+    end
+
+    class IntegerConstantDelegator < ConstantDelegator
+      alias to_int get_value
+    end
+  end
+end
+
+RAILS_ROOT = Apache::RailsDispatcher::StringConstantDelegator.new(:RAILS_ROOT)
+RAILS_ENV = Apache::RailsDispatcher::StringConstantDelegator.new(:RAILS_ENV)
+RAILS_DEFAULT_LOGGER = Apache::RailsDispatcher::ConstantDelegator.new(:RAILS_DEFAULT_LOGGER)
+Controllers = Apache::RailsDispatcher::ConstantDelegator.new(:Controllers)
+
+module ActiveRecord
+  class Base
+    def self.establish_connection(spec = nil)
+      case spec
+        when nil
+          raise AdapterNotSpecified unless defined? RAILS_ENV
+          establish_connection(RAILS_ENV)
+        when ConnectionSpecification
+          @@defined_connections[self] = spec
+        when Symbol, String
+          if configuration = configurations[spec.to_s]
+            establish_connection(configuration)
+          else
+            raise AdapterNotSpecified, "#{spec} database is not configured"
+          end
+        else
+          begin
+            establish_connection(spec.to_str)
+          rescue NoMethodError
+            spec = spec.symbolize_keys
+            unless spec.key?(:adapter) then raise AdapterNotSpecified, "database configuration does not specify adapter" end
+            adapter_method = "#{spec[:adapter]}_connection"
+            unless respond_to?(adapter_method) then raise AdapterNotFound, "database configuration specifies nonexistent #{spec[:adapter]} adapter" end
+            remove_connection
+            establish_connection(ConnectionSpecification.new(spec, adapter_method))
+          end
+      end
     end
   end
 end
