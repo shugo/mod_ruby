@@ -189,7 +189,7 @@ module Apache
     def get_environment(rails_root)
       env = @@environments[rails_root]
       unless env
-        env = @@environments[rails_root] = RailsEnvironment.new(rails_root)
+        env = @@environments[rails_root] = Environment.new(rails_root)
       end
       return env
     end
@@ -227,7 +227,7 @@ module Apache
     end
   end
 
-  class RailsEnvironment
+  class Environment
     attr_reader :rails_root, :binding, :module, :loaded_files
     attr_accessor :loaded_dependencies
 
