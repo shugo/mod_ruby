@@ -113,6 +113,8 @@ module Apache
         remove_const(:Controllers)
         ActiveRecord::Base.colorize_logging = DEFAULT_COLORIZE_LOGGING 
         ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.replace(DEFAULT_SESSION_OPTIONS)
+        [ActiveRecord, ActionController, ActionMailer].each { |mod| mod::Base.logger = nil }
+        [ActionController, ActionMailer].each { |mod| mod::Base.template_root = nil }
       end
       return OK
     end
