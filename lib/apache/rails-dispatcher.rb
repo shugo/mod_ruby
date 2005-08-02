@@ -121,6 +121,7 @@ module Apache
           r.options["rails_uri_root"]
         cgi = CGI.new
         session_options = ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS
+        session_options = session_options.merge({:session_path => r.options["rails_uri_root"]})
         request = ActionController::CgiRequest.new(cgi, session_options)
         response = ActionController::CgiResponse.new(cgi)
         prepare_application
