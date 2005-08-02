@@ -117,8 +117,12 @@ module Apache
         /\A([A-Z_]+|Controllers)\z/.match(c)
       }
       begin
-        ActionController::AbstractRequest.relative_url_root =
-          r.options["rails_uri_root"]
+        if /\A\/*\z/.match(r.options["rails_uri_root"])
+          ActionController::AbstractRequest.relative_url_root = nil
+        else
+          ActionController::AbstractRequest.relative_url_root =
+            r.options["rails_uri_root"]
+        end
         cgi = CGI.new
         session_options = ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS
         session_options = session_options.merge({:session_path => r.options["rails_uri_root"]})
