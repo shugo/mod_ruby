@@ -45,7 +45,6 @@ Apache::RailsDispatcher dispatches requests to Rails applications.
 
 =end
 
-require "rubygems"
 require "set"
 require "singleton"
 require "active_support"
