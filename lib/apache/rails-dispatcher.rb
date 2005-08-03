@@ -202,7 +202,7 @@ module Apache
 
 
     class Environment
-      attr_reader :rails_root, :binding, :module, :loaded_files
+      attr_reader :rails_root, :binding, :module, :loaded_files, :controllers
       attr_accessor :loaded_dependencies
 
       def initialize(rails_root)
@@ -211,6 +211,7 @@ module Apache
         @module = setup_module
         @loaded_files = Set.new
         @loaded_dependencies = []
+        @controllers = nil
       end
 
       def eval_string(s, filename = "(eval)", lineno = 1)
@@ -221,6 +222,12 @@ module Apache
         environment_path = File.expand_path("config/environment.rb",
                                             @rails_root)
         load_file(environment_path)
+        if @controllers
+          remove_const(:Controllers)
+          @module.const_set(:Controllers, @controllers)
+        else
+          @controllers = @module.const_get(:Controllers)
+        end
       end
 
       def load_file(filename)
