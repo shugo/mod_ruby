@@ -133,6 +133,17 @@ module Apache
       rescue Exception => exception
         ActionController::Base.process_with_exception(request, response, exception).out(r)
       ensure
+        if r.options.key?("rails_cleanup")
+          begin
+            @@current_environment.eval_string(r.options["rails_cleanup"],
+                                              "rails_cleanup")
+          rescue Exception => e
+            r.server.log_error("%s: %s", e.class, e.message)
+            for line in e.backtrace
+              r.server.log_error("  %s", line)
+            end
+          end
+        end
         for c in conf_constants
           @@current_environment.remove_const(c)
         end
