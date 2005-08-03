@@ -226,7 +226,7 @@ module Apache
       def load_file(filename)
         file = $:.collect { |dir|
           File.expand_path(filename, dir)
-        }.detect { |f| File.exist?(f) } || filename
+        }.detect { |f| File.file?(f) } || filename
         begin
           eval_string(File.read(file), file, 1)
           return true
