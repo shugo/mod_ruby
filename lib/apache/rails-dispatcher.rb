@@ -240,14 +240,12 @@ module Apache
           $".include?(filename + ".rb") || $".include?(filename + ".so")
           return false
         end
+        file = filename
+        file += ".rb" unless /\.rb\z/.match(filename)
         begin
-          load_file(filename)
+          load_file(file)
         rescue LoadError
-          begin
-            load_file(filename + ".rb")
-          rescue LoadError
-            Kernel.require(filename)
-          end
+          Kernel.require(filename)
         end
         @loaded_files.add(filename)
         return true
