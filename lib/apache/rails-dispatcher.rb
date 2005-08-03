@@ -114,7 +114,7 @@ module Apache
       @@current_environment.load_environment
       conf_constants =
         (@@current_environment.module.constants - old_constants).select { |c|
-        /\A([A-Z_]+|Controllers)\z/.match(c)
+        /\A([A-Z]+_[A-Z]+[A-Z_]*|Controllers)\z/.match(c)
       }
       begin
         if /\A\/*\z/.match(r.options["rails_uri_root"])
