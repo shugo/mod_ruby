@@ -158,7 +158,7 @@
 
       example:
 
-        RubyFixupHandler Apache::Foo.instance
+        RubyInitHandler Apache::Foo.instance
 
         <Location /ruby>
           RubyInitHandler Apache::Foo.instance
