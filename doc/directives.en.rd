@@ -166,11 +166,8 @@
 
 --- RubyCleanupHandler expr
       Specifies an expression that returns an object for the cleanup handler. It
-      will call the ((|cleanup|)) method with the request object. If this
-      directive is inside of a ((|<Location>|)), ((|<Directory>|)), or
-      ((|<Files>|)) directive, it will be run after the request is complete. If
-      it occurs outside of a ((|<Directory>|)), it will be run at server
-      shutdown.
+      will call the ((|cleanup|)) method with the request object after
+      the request is complete.
 
       example:
 
