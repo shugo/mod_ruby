@@ -61,7 +61,6 @@
       example:
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyTransHandler Apache::Foo.instance
         </Location>
 
@@ -73,7 +72,6 @@
       example:
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyAuthenHandler Apache::Foo.instance
         </Location>
 
@@ -84,7 +82,6 @@
       example:
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyAuthzHandler Apache::Foo.instance
         </Location>
 
@@ -95,7 +92,6 @@
       example:
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyAccessHandler Apache::Foo.instance
         </Location>
 
@@ -106,7 +102,6 @@
       example:
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyTypeHandler Apache::Foo.instance
         </Location>
 
@@ -117,7 +112,6 @@
       example:
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyFixupHandler Apache::Foo.instance
         </Location>
 
@@ -128,7 +122,6 @@
       example:
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyLogHandler Apache::Foo.instance
         </Location>
 
@@ -140,7 +133,6 @@
       example:
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyHeaderParserHandler Apache::Foo.instance
         </Location>
 
@@ -153,7 +145,6 @@
       example:
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyPostReadRequestHandler Apache::Foo.instance
         </Location>
 
@@ -170,7 +161,6 @@
         RubyFixupHandler Apache::Foo.instance
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyInitHandler Apache::Foo.instance
         </Location>
 
@@ -187,7 +177,6 @@
         RubyCleanupHandler Apache::Foo.instance
 
         <Location /ruby>
-          SetHandler ruby-object
           RubyCleanupHandler Apache::Foo.instance
         </Location>
 
