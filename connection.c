@@ -100,7 +100,11 @@ static VALUE connection_local_port(VALUE self)
 #ifdef APACHE2
     return INT2NUM(conn->local_addr->port);
 #else
+#ifdef APACHE6
+    return INT2NUM(ntohs(((struct sockaddr_in *)&conn->local_addr)->sin_port));
+#else
     return INT2NUM(ntohs(conn->local_addr.sin_port));
+#endif
 #endif
 }
 
@@ -112,7 +116,11 @@ static VALUE connection_remote_port(VALUE self)
 #ifdef APACHE2
     return INT2NUM(conn->remote_addr->port);
 #else
+#ifdef APACHE6
+    return INT2NUM(ntohs(((struct sockaddr_in *)&conn->remote_addr)->sin_port));
+#else
     return INT2NUM(ntohs(conn->remote_addr.sin_port));
+#endif
 #endif
 }
 
