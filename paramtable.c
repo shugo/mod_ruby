@@ -86,7 +86,7 @@ static VALUE paramtable_clear( VALUE self )
 {
     table *tbl = get_paramtable( self );
 
-    ap_clear_table( tbl );
+    apr_table_clear( tbl );
     return Qnil;
 }
 
@@ -120,14 +120,14 @@ static VALUE paramtable_get( VALUE self, VALUE name )
 
     key = StringValuePtr( name );
 
-    if ( ap_table_get(tbl, key) ) {
+    if ( apr_table_get(tbl, key) ) {
         VALUE ary;
 
         res = rb_class_new_instance(0, 0, rb_cApacheMultiVal);
         ary = rb_ivar_get( res, atargs_id );
         rb_ary_clear( ary );
 
-        ap_table_do( rb_ary_tainted_push, &ary, tbl, key, NULL );
+        apr_table_do( rb_ary_tainted_push, &ary, tbl, key, NULL );
     }
 		
     return res;
@@ -149,16 +149,16 @@ static VALUE paramtable_set( VALUE self, VALUE name, VALUE val )
         VALUE str;
         int i;
 		
-        ap_table_unset( tbl, key );
+        apr_table_unset( tbl, key );
         for ( i = 0; i < RARRAY(ary)->len; i++ ) {
             str = rb_check_convert_type( *(RARRAY(ary)->ptr+i), T_STRING,
                                          "String", "to_str" );
-            ap_table_add( tbl, key, StringValuePtr(str) );
+            apr_table_add( tbl, key, StringValuePtr(str) );
         }
     }
     else { 
         val = rb_check_convert_type( val, T_STRING, "String", "to_str" );
-        ap_table_set( tbl, key, StringValuePtr(val) );
+        apr_table_set( tbl, key, StringValuePtr(val) );
     }
 
     return val;
@@ -174,7 +174,7 @@ static VALUE paramtable_set( VALUE self, VALUE name, VALUE val )
 static VALUE paramtable_unset( VALUE self, VALUE name )
 {
     table *tbl = get_paramtable( self );
-    ap_table_unset( tbl, StringValuePtr(name) );
+    apr_table_unset( tbl, StringValuePtr(name) );
     return Qnil;
 }
 
@@ -194,7 +194,7 @@ static VALUE paramtable_each( VALUE self )
     table_entry *hdrs;
     int i;
 
-    hdrs_arr = ap_table_elts( tbl );
+    hdrs_arr = apr_table_elts( tbl );
     hdrs = (table_entry *) hdrs_arr->elts;
 
     res = rb_ary_new2( hdrs_arr->nelts + 1 );
@@ -207,7 +207,7 @@ static VALUE paramtable_each( VALUE self )
         val = rb_class_new_instance(0, 0, rb_cApacheMultiVal);
         ary = rb_ivar_get( val, atargs_id );
         rb_ary_clear( ary );
-        ap_table_do( rb_ary_tainted_push, &ary, tbl, hdrs[i].key, NULL );
+        apr_table_do( rb_ary_tainted_push, &ary, tbl, hdrs[i].key, NULL );
 
         assoc = rb_assoc_new( key, val );
         rb_yield( assoc );
@@ -231,7 +231,7 @@ static VALUE paramtable_keys( VALUE self )
     int i;
     VALUE res;
 
-    hdrs_arr = ap_table_elts(tbl);
+    hdrs_arr = apr_table_elts( tbl );
     hdrs = (table_entry *) hdrs_arr->elts;
 
     res = rb_ary_new2( hdrs_arr->nelts + 1 );
@@ -259,7 +259,7 @@ static VALUE paramtable_values( VALUE self )
     table_entry *hdrs;
     int i;
 
-    hdrs_arr = ap_table_elts( tbl );
+    hdrs_arr = apr_table_elts( tbl );
     hdrs = (table_entry *) hdrs_arr->elts;
 
     res = rb_ary_new2( hdrs_arr->nelts + 1 );
@@ -272,7 +272,7 @@ static VALUE paramtable_values( VALUE self )
         val = rb_class_new_instance(0, 0, rb_cApacheMultiVal);
         ary = rb_ivar_get( val, atargs_id );
         rb_ary_clear( ary );
-        ap_table_do( rb_ary_tainted_push, &ary, tbl, hdrs[i].key, NULL );
+        apr_table_do( rb_ary_tainted_push, &ary, tbl, hdrs[i].key, NULL );
         rb_ary_store( res, i, val );
     }
 

@@ -41,14 +41,29 @@ typedef struct {
 #define ApacheCookieJarFetch(arr,i) \
 ((ApacheCookie *)(((ApacheCookie **)arr->elts)[i]))
 
+#ifdef APACHE2
+#define ApacheCookieJarAdd(arr,c) \
+*(ApacheCookie **)apr_array_push(arr) = c
+#else /* Apache 1.x */
 #define ApacheCookieJarAdd(arr,c) \
 *(ApacheCookie **)ap_push_array(arr) = c
+#endif
 
 #define ApacheCookieItems(c) c->values->nelts
 
 #define ApacheCookieFetch(c,i) \
 ((char *)(((char **)c->values->elts)[i]))
 
+#ifdef APACHE2
+#define ApacheCookieAddn(c,val) \
+    if(val) *(char **)apr_array_push(c->values) = (char *)val
+
+#define ApacheCookieAdd(c,val) \
+    ApacheCookieAddn(c, apr_pstrdup(c->r->pool, val))
+
+#define ApacheCookieAddLen(c,val,len) \
+    ApacheCookieAddn(c, apr_pstrndup(c->r->pool, val, len))
+#else /* Apache 1.x */
 #define ApacheCookieAddn(c,val) \
     if(val) *(char **)ap_push_array(c->values) = (char *)val
 
@@ -57,6 +72,12 @@ typedef struct {
 
 #define ApacheCookieAddLen(c,val,len) \
     ApacheCookieAddn(c, ap_pstrndup(c->r->pool, val, len))
+#endif
+
+
+#ifdef APACHE2
+#else
+#endif
 
 ApacheCookie *ApacheCookie_new(request_rec *r, ...);
 ApacheCookieJar *ApacheCookie_parse(request_rec *r, const char *data);

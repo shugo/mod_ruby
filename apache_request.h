@@ -106,8 +106,13 @@ ApacheUpload *ApacheUpload_find(ApacheUpload *upload, char *name);
 
 #define ApacheUpload_size(upload) ((upload)->size)
 
+#ifdef APACHE2
+#define ApacheUpload_info(upload, key) \
+apr_table_get((upload)->info, (key))
+#else
 #define ApacheUpload_info(upload, key) \
 ap_table_get((upload)->info, (key))
+#endif
 
 #define ApacheUpload_type(upload) \
 ApacheUpload_info((upload), "Content-Type")

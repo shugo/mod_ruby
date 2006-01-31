@@ -40,7 +40,7 @@ static VALUE table_clear(VALUE self)
     table *tbl;
 
     Data_Get_Struct(self, table, tbl);
-    ap_clear_table(tbl);
+    apr_table_clear(tbl);
     return Qnil;
 }
 
@@ -51,7 +51,7 @@ static VALUE table_get(VALUE self, VALUE name)
 
     key = StringValuePtr(name);
     Data_Get_Struct(self, table, tbl);
-    res = ap_table_get(tbl, key);
+    res = apr_table_get(tbl, key);
     if (res)
 	return rb_tainted_str_new2(res);
     else
@@ -64,7 +64,7 @@ static VALUE table_set(VALUE self, VALUE name, VALUE val)
 
     Check_Type(val, T_STRING);
     Data_Get_Struct(self, table, tbl);
-    ap_table_set(tbl, StringValuePtr(name), StringValuePtr(val));
+    apr_table_set(tbl, StringValuePtr(name), StringValuePtr(val));
     return val;
 }
 
@@ -74,7 +74,7 @@ static VALUE table_merge(VALUE self, VALUE name, VALUE val)
 
     Check_Type(val, T_STRING);
     Data_Get_Struct(self, table, tbl);
-    ap_table_merge(tbl, StringValuePtr(name), StringValuePtr(val));
+    apr_table_merge(tbl, StringValuePtr(name), StringValuePtr(val));
     return val;
 }
 
@@ -83,7 +83,7 @@ static VALUE table_unset(VALUE self, VALUE name)
     table *tbl;
 
     Data_Get_Struct(self, table, tbl);
-    ap_table_unset(tbl, StringValuePtr(name));
+    apr_table_unset(tbl, StringValuePtr(name));
     return Qnil;
 }
 
@@ -93,7 +93,7 @@ static VALUE table_add(VALUE self, VALUE name, VALUE val)
 
     Check_Type(val, T_STRING);
     Data_Get_Struct(self, table, tbl);
-    ap_table_add(tbl, StringValuePtr(name), StringValuePtr(val));
+    apr_table_add(tbl, StringValuePtr(name), StringValuePtr(val));
     return val;
 }
 
@@ -106,7 +106,7 @@ static VALUE table_each(VALUE self)
     int i;
 
     Data_Get_Struct(self, table, tbl);
-    hdrs_arr = ap_table_elts(tbl);
+    hdrs_arr = apr_table_elts(tbl);
     hdrs = (table_entry *) hdrs_arr->elts;
     for (i = 0; i < hdrs_arr->nelts; i++) {
 	if (hdrs[i].key == NULL)
@@ -127,7 +127,7 @@ static VALUE table_each_key(VALUE self)
     int i;
 
     Data_Get_Struct(self, table, tbl);
-    hdrs_arr = ap_table_elts(tbl);
+    hdrs_arr = apr_table_elts(tbl);
     hdrs = (table_entry *) hdrs_arr->elts;
     for (i = 0; i < hdrs_arr->nelts; i++) {
 	if (hdrs[i].key == NULL)
@@ -145,7 +145,7 @@ static VALUE table_each_value(VALUE self)
     int i;
 
     Data_Get_Struct(self, table, tbl);
-    hdrs_arr = ap_table_elts(tbl);
+    hdrs_arr = apr_table_elts(tbl);
     hdrs = (table_entry *) hdrs_arr->elts;
     for (i = 0; i < hdrs_arr->nelts; i++) {
 	if (hdrs[i].key == NULL)

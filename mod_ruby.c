@@ -148,60 +148,69 @@ static int ruby_header_parser_handler(request_rec *r);
 #endif
 static int ruby_post_read_request_handler(request_rec *r);
 
-static const command_rec ruby_cmds[] =
-{
-    {"RubyKanjiCode", ruby_cmd_kanji_code, NULL, OR_ALL, TAKE1,
-     "set $KCODE"},
-    {"RubyAddPath", ruby_cmd_add_path, NULL, OR_ALL, ITERATE,
-     "add path to $:"},
-    {"RubyRequire", ruby_cmd_require, NULL, OR_ALL, ITERATE,
-     "ruby script name, pulled in via require"},
-    {"RubyPassEnv", ruby_cmd_pass_env, NULL, RSRC_CONF, ITERATE,
-     "pass environment variables to ENV"},
-    {"RubySetEnv", ruby_cmd_set_env, NULL, OR_ALL, TAKE2,
-     "Ruby ENV key and value" },
-    {"RubyTimeOut", ruby_cmd_timeout, NULL, RSRC_CONF, TAKE1,
-     "time to wait execution of ruby script"},
-    {"RubySafeLevel", ruby_cmd_safe_level, NULL, OR_ALL, TAKE1,
-     "set default $SAFE"},
-    {"RubyOutputMode", ruby_cmd_output_mode, NULL, OR_ALL, TAKE1,
-     "set output mode (nosync|sync|syncheader)"},
-    {"RubyRestrictDirectives", ruby_cmd_restrict_directives, NULL, 
-     RSRC_CONF, FLAG,
-     "whether Ruby* directives are restricted from .htaccess"},
-    {"RubyOption", ruby_cmd_option, NULL, OR_ALL, TAKE2,
-     "set option for application"},
-    {"RubyHandler", ruby_cmd_handler, NULL, OR_ALL, TAKE1,
-     "set ruby handler object"},
-    {"RubyTransHandler", ruby_cmd_trans_handler, NULL, OR_ALL, TAKE1,
-     "set translation handler object"},
-    {"RubyAuthenHandler", ruby_cmd_authen_handler, NULL, OR_ALL, TAKE1,
-     "set authentication handler object"},
-    {"RubyAuthzHandler", ruby_cmd_authz_handler, NULL, OR_ALL, TAKE1,
-     "set authorization handler object"},
-    {"RubyAccessHandler", ruby_cmd_access_handler, NULL, OR_ALL, TAKE1,
-     "set access checker object"},
-    {"RubyTypeHandler", ruby_cmd_type_handler, NULL, OR_ALL, TAKE1,
-     "set type checker object"},
-    {"RubyFixupHandler", ruby_cmd_fixup_handler, NULL, OR_ALL, TAKE1,
-     "set fixup handler object"},
-    {"RubyLogHandler", ruby_cmd_log_handler, NULL, OR_ALL, TAKE1,
-     "set log handler object"},
-    {"RubyHeaderParserHandler", ruby_cmd_header_parser_handler,
-     NULL, OR_ALL, TAKE1,
-     "set header parser object"},
-    {"RubyPostReadRequestHandler", ruby_cmd_post_read_request_handler,
-     NULL, RSRC_CONF, TAKE1,
-     "set post-read-request handler object"},
-    {"RubyInitHandler", ruby_cmd_init_handler,
-     NULL, OR_ALL, TAKE1,
-     "set init handler object"},
-    {"RubyCleanupHandler", ruby_cmd_cleanup_handler,
-     NULL, OR_ALL, TAKE1,
-     "set cleanup handler object"},
-    {"RubyChildInitHandler", ruby_cmd_child_init_handler,
-     NULL, RSRC_CONF, TAKE1,
-     "set child init handler object"},
+#ifndef AP_INIT_TAKE1
+# define AP_INIT_TAKE1(directive, func, mconfig, where, help) \
+    { directive, func, mconfig, where, TAKE1, help }
+# define AP_INIT_TAKE2(directive, func, mconfig, where, help) \
+    { directive, func, mconfig, where, TAKE2, help }
+# define AP_INIT_ITERATE(directive, func, mconfig, where, help) \
+    { directive, func, mconfig, where, ITERATE, help }
+# define AP_INIT_FLAG(directive, func, mconfig, where, help) \
+    { directive, func, mconfig, where, FLAG, help }
+#endif
+
+static const command_rec ruby_cmds[] = {
+    AP_INIT_TAKE1("RubyKanjiCode", (const char *(*)())ruby_cmd_kanji_code, NULL, OR_ALL,
+     "set $KCODE"),
+    AP_INIT_ITERATE("RubyAddPath", ruby_cmd_add_path, NULL, OR_ALL,
+     "add path to $:"),
+    AP_INIT_ITERATE("RubyRequire", ruby_cmd_require, NULL, OR_ALL,
+     "ruby script name, pulled in via require"),
+    AP_INIT_ITERATE("RubyPassEnv", ruby_cmd_pass_env, NULL, RSRC_CONF,
+     "pass environment variables to ENV"),
+    AP_INIT_TAKE2("RubySetEnv", ruby_cmd_set_env, NULL, OR_ALL,
+     "Ruby ENV key and value" ),
+    AP_INIT_TAKE1("RubyTimeOut", ruby_cmd_timeout, NULL, RSRC_CONF,
+     "time to wait execution of ruby script"),
+    AP_INIT_TAKE1("RubySafeLevel", ruby_cmd_safe_level, NULL, OR_ALL,
+     "set default $SAFE"),
+    AP_INIT_TAKE1("RubyOutputMode", ruby_cmd_output_mode, NULL, OR_ALL,
+     "set output mode (nosync|sync|syncheader)"),
+    AP_INIT_FLAG("RubyRestrictDirectives", ruby_cmd_restrict_directives, NULL, 
+     RSRC_CONF, "whether Ruby* directives are restricted from .htaccess"),
+    AP_INIT_TAKE2("RubyOption", ruby_cmd_option, NULL, OR_ALL,
+     "set option for application"),
+    AP_INIT_TAKE1("RubyHandler", ruby_cmd_handler, NULL, OR_ALL,
+     "set ruby handler object"),
+    AP_INIT_TAKE1("RubyTransHandler", ruby_cmd_trans_handler, NULL, OR_ALL,
+     "set translation handler object"),
+    AP_INIT_TAKE1("RubyAuthenHandler", ruby_cmd_authen_handler, NULL, OR_ALL,
+     "set authentication handler object"),
+    AP_INIT_TAKE1("RubyAuthzHandler", ruby_cmd_authz_handler, NULL, OR_ALL,
+     "set authorization handler object"),
+    AP_INIT_TAKE1("RubyAccessHandler", ruby_cmd_access_handler, NULL, OR_ALL,
+     "set access checker object"),
+    AP_INIT_TAKE1("RubyTypeHandler", ruby_cmd_type_handler, NULL, OR_ALL,
+     "set type checker object"),
+    AP_INIT_TAKE1("RubyFixupHandler", ruby_cmd_fixup_handler, NULL, OR_ALL,
+     "set fixup handler object"),
+    AP_INIT_TAKE1("RubyLogHandler", ruby_cmd_log_handler, NULL, OR_ALL,
+     "set log handler object"),
+    AP_INIT_TAKE1("RubyHeaderParserHandler", ruby_cmd_header_parser_handler,
+     NULL, OR_ALL,
+     "set header parser object"),
+    AP_INIT_TAKE1("RubyPostReadRequestHandler", ruby_cmd_post_read_request_handler,
+     NULL, RSRC_CONF,
+     "set post-read-request handler object"),
+    AP_INIT_TAKE1("RubyInitHandler", ruby_cmd_init_handler,
+     NULL, OR_ALL,
+     "set init handler object"),
+    AP_INIT_TAKE1("RubyCleanupHandler", ruby_cmd_cleanup_handler,
+     NULL, OR_ALL,
+     "set cleanup handler object"),
+    AP_INIT_TAKE1("RubyChildInitHandler", ruby_cmd_child_init_handler,
+     NULL, RSRC_CONF,
+     "set child init handler object"),
     {NULL}
 };
 
@@ -553,7 +562,7 @@ void mod_ruby_setup_loadpath(ruby_server_config *sconf,
     }
 }
 
-static int ruby_require_directly(char *filename,
+static int ruby_require_directly(const char *filename,
 				 ruby_server_config *sconf,
 				 ruby_dir_config *dconf)
 {
@@ -830,7 +839,7 @@ static APR_CLEANUP_RETURN_TYPE ruby_child_cleanup(void *data)
 
 static request_rec *fake_request_rec(server_rec *s, pool *p, char *hook)
 {
-    request_rec *r = (request_rec *) ap_pcalloc(p, sizeof(request_rec));
+    request_rec *r = (request_rec *) apr_pcalloc(p, sizeof(request_rec));
     r->pool = p; 
     r->server = s;
     r->per_dir_config = NULL;
@@ -900,7 +909,7 @@ static void ruby_child_init(server_rec *s, pool *p)
 #if APR_HAS_THREADS
 	}
 #endif
-	ap_register_cleanup(p, NULL, ruby_child_cleanup, ap_null_cleanup);
+	apr_pool_cleanup_register(p, NULL, ruby_child_cleanup, apr_pool_cleanup_null);
     }
 
     r = fake_request_rec(s, p, "RubyChildInitHandler");
@@ -912,14 +921,14 @@ static void ruby_child_init(server_rec *s, pool *p)
 static void mod_ruby_clearenv(pool *p)
 {
     char **env;
-    array_header *names = ap_make_array(p, 1, sizeof(char*));
+    array_header *names = apr_array_make(p, 1, sizeof(char*));
     int i;
     
     env = GET_ENVIRON(environ);
     while (*env) {
         char *s = strchr(*env, '=');
         if (s) {
-            *(char **) ap_push_array(names) = ap_pstrndup(p, *env, s - *env);
+            *(char **) apr_array_push(names) = apr_pstrndup(p, *env, s - *env);
         }
         env++;
     }
@@ -949,7 +958,7 @@ static void setenv_from_table(table *tbl)
     table_entry *env;
     int i;
 
-    env_arr = ap_table_elts(tbl);
+    env_arr = apr_table_elts(tbl);
     env = (table_entry *) env_arr->elts;
     for (i = 0; i < env_arr->nelts; i++) {
 	if (env[i].key == NULL)
@@ -1060,13 +1069,13 @@ static table *save_env(pool *p)
     table *result;
     
     env = GET_ENVIRON(environ);
-    result = ap_make_table(p, 1);
+    result = apr_table_make(p, 1);
     while (*env) {
         char *s = strchr(*env, '=');
         if (s) {
-            k = ap_pstrndup(p, *env, s - *env);
-            v = ap_pstrdup(p, s + 1);
-	    ap_table_set(result, k, v);
+            k = apr_pstrndup(p, *env, s - *env);
+            v = apr_pstrdup(p, s + 1);
+	    apr_table_set(result, k, v);
         }
         env++;
     }
@@ -1080,7 +1089,7 @@ static void restore_env(pool *p, table *env)
     int i;
 
     mod_ruby_clearenv(p);
-    hdrs_arr = ap_table_elts(env);
+    hdrs_arr = apr_table_elts(env);
     hdrs = (table_entry *) hdrs_arr->elts;
     for (i = 0; i < hdrs_arr->nelts; i++) {
 	if (hdrs[i].key == NULL)
@@ -1096,7 +1105,7 @@ static void per_request_init(request_rec *r)
     ruby_dir_config *dconf;
 
     if (r->request_config) {
-	rconf = ap_palloc(r->pool, sizeof(ruby_request_config));
+	rconf = apr_palloc(r->pool, sizeof(ruby_request_config));
 	rconf->saved_env = save_env(r->pool);
 	rconf->request_object = Qnil;
 	ap_set_module_config(r->request_config, &ruby_module, rconf);
@@ -1260,7 +1269,7 @@ static int ruby_handler(request_rec *r,
     if (handlers_arr == NULL)
 	return DECLINED;
 
-    arg = ap_palloc(r->pool, sizeof(handler_internal_arg_t));
+    arg = apr_palloc(r->pool, sizeof(handler_internal_arg_t));
     arg->r = r;
     arg->handlers_arr = handlers_arr;
     arg->mid = mid;
@@ -1407,13 +1416,13 @@ static int ruby_post_read_request_handler(request_rec *r)
     ruby_dir_config *dconf = get_dir_config(r);
     int retval;
 
-    ap_register_cleanup(r->pool, (void *) r, ruby_cleanup_handler, 
-			ap_null_cleanup);
+    apr_pool_cleanup_register(r->pool, (void *) r, ruby_cleanup_handler, 
+			apr_pool_cleanup_null);
 
     if (dconf->ruby_init_handler) {
 	retval = ruby_handler(r, dconf->ruby_init_handler,
 			      rb_intern("init"), 1, 0);
-	ap_table_set(r->notes, "ruby_init_ran", "true");
+	apr_table_set(r->notes, "ruby_init_ran", "true");
 	if (retval != OK && retval != DECLINED)
 	    return retval;
     }

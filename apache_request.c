@@ -45,7 +45,7 @@ static int util_read(ApacheRequest *req, const char **rbuf)
 	    return HTTP_REQUEST_ENTITY_TOO_LARGE;
 	}
 
-	*rbuf = ap_pcalloc(r->pool, length + 1);
+	*rbuf = apr_pcalloc(r->pool, length + 1);
 
 	ap_hard_timeout("[libapreq] util_read", r);
 
@@ -74,7 +74,7 @@ char *ApacheRequest_script_name(ApacheRequest *req)
 
     if (r->path_info && *r->path_info) {
 	int path_info_start = ap_find_path_info(r->uri, r->path_info);
-	tmp = ap_pstrndup(r->pool, r->uri, path_info_start);
+	tmp = apr_pstrndup(r->pool, r->uri, path_info_start);
     }
     else {
 	tmp = r->uri;
@@ -91,21 +91,21 @@ char *ApacheRequest_script_path(ApacheRequest *req)
 const char *ApacheRequest_param(ApacheRequest *req, const char *key)
 {
     ApacheRequest_parse(req);
-    return ap_table_get(req->parms, key);
+    return apr_table_get(req->parms, key);
 }
 
 static int make_params(void *data, const char *key, const char *val)
 {
     array_header *arr = (array_header *)data;
-    *(char **)ap_push_array(arr) = (char *)val;
+    *(char **)apr_array_push(arr) = (char *)val;
     return 1;
 }
 
 array_header *ApacheRequest_params(ApacheRequest *req, const char *key)
 {
-    array_header *values = ap_make_array(req->r->pool, 4, sizeof(char *));
+    array_header *values = apr_array_make(req->r->pool, 4, sizeof(char *));
     ApacheRequest_parse(req);
-    ap_table_do(make_params, (void*)values, req->parms, key, NULL);
+    apr_table_do(make_params, (void*)values, req->parms, key, NULL);
     return values;
 }
 
@@ -116,7 +116,7 @@ char *ApacheRequest_params_as_string(ApacheRequest *req, const char *key)
     int i;
 
     for (i=0; i<values->nelts; i++) {
-	retval = ap_pstrcat(req->r->pool,
+	retval = apr_pstrcat(req->r->pool,
 			    retval ? retval : "",
 			    ((char **)values->elts)[i],
 			    (i == (values->nelts - 1)) ? NULL : ", ",
@@ -128,7 +128,7 @@ char *ApacheRequest_params_as_string(ApacheRequest *req, const char *key)
 
 table *ApacheRequest_query_params(ApacheRequest *req, ap_pool *p)
 {
-    array_header *a = ap_palloc(p, sizeof *a);
+    array_header *a = apr_palloc(p, sizeof *a);
     array_header *b = (array_header *)req->parms;
 
     a->elts     = b->elts;
@@ -141,7 +141,7 @@ table *ApacheRequest_query_params(ApacheRequest *req, ap_pool *p)
 
 table *ApacheRequest_post_params(ApacheRequest *req, ap_pool *p)
 {
-    array_header *a = ap_palloc(p, sizeof *a);
+    array_header *a = apr_palloc(p, sizeof *a);
     array_header *b = (array_header *)req->parms;
 
     a->elts     = (void *)( (table_entry *)b->elts + req->nargs );
@@ -155,7 +155,7 @@ table *ApacheRequest_post_params(ApacheRequest *req, ap_pool *p)
 ApacheUpload *ApacheUpload_new(ApacheRequest *req)
 {
     ApacheUpload *upload = (ApacheUpload *)
-	ap_pcalloc(req->r->pool, sizeof(ApacheUpload));
+	apr_pcalloc(req->r->pool, sizeof(ApacheUpload));
 
     upload->next = NULL;
     upload->name = NULL;
@@ -183,10 +183,10 @@ ApacheUpload *ApacheUpload_find(ApacheUpload *upload, char *name)
 ApacheRequest *ApacheRequest_new(request_rec *r)
 {
     ApacheRequest *req = (ApacheRequest *)
-	ap_pcalloc(r->pool, sizeof(ApacheRequest));
+	 apr_pcalloc(r->pool, sizeof(ApacheRequest));
 
+    req->parms = apr_table_make(r->pool, DEFAULT_TABLE_NELTS);
     req->status = OK;
-    req->parms = ap_make_table(r->pool, DEFAULT_TABLE_NELTS);
     req->upload = NULL;
     req->post_max = -1;
     req->disable_uploads = 0;
@@ -225,8 +225,8 @@ static unsigned int utf8_convert(char *str) {
     long x = 0;
     int i = 0;
     while (i < 4 ) {
-	if ( ap_isxdigit(str[i]) != 0 ) {
-	    if( ap_isdigit(str[i]) != 0 ) {
+	if ( apr_isxdigit(str[i]) != 0 ) {
+	    if( apr_isdigit(str[i]) != 0 ) {
 		x = x * 16 + str[i] - '0';
 	    }
 	    else {
@@ -293,7 +293,7 @@ static int ap_unescape_url_u(char *url)
 		}
 	    }
 	    else {
-		if (!ap_isxdigit(url[y + 1]) || !ap_isxdigit(url[y + 2])) {
+		if (!apr_isxdigit(url[y + 1]) || !apr_isxdigit(url[y + 2])) {
 		    badesc = 1;
 		    url[x] = '%';
 		}
@@ -329,7 +329,7 @@ static char *my_urlword(pool *p, const char **line)
 	++pos;
     }
 
-    res = ap_pstrndup(p, *line, pos - *line);
+    res = apr_pstrndup(p, *line, pos - *line);
 
     while (ch == ';' || ch == '&') {
 	++pos;
@@ -354,7 +354,7 @@ static void split_to_parms(ApacheRequest *req, const char *data)
 	ap_unescape_url_u((char*)key);
 	req_plustospace((char*)val);
 	ap_unescape_url_u((char*)val);
-	ap_table_add(req->parms, key, val);
+	apr_table_add(req->parms, key, val);
     }
 
 }
@@ -370,7 +370,7 @@ int ApacheRequest___parse(ApacheRequest *req)
     }
 
     if (r->method_number == M_POST) {
-	const char *ct = ap_table_get(r->headers_in, "Content-type");
+	const char *ct = apr_table_get(r->headers_in, "Content-type");
 	if (ct && strncaseEQ(ct, DEFAULT_ENCTYPE, DEFAULT_ENCTYPE_LENGTH)) {
 	    result = ApacheRequest_parse_urlencoded(req);
 	}
@@ -400,7 +400,7 @@ int ApacheRequest_parse_urlencoded(ApacheRequest *req)
     if (r->method_number == M_POST) {
 	const char *data = NULL, *type;
 
-	type = ap_table_get(r->headers_in, "Content-Type");
+	type = apr_table_get(r->headers_in, "Content-Type");
 
 	if (!strncaseEQ(type, DEFAULT_ENCTYPE, DEFAULT_ENCTYPE_LENGTH)) {
 	    return DECLINED;
@@ -467,8 +467,8 @@ FILE *ApacheRequest_tmpfile(ApacheRequest *req, ApacheUpload *upload)
 
     upload->fp = fp;
     upload->tempname = name;
-    ap_register_cleanup(r->pool, (void *)upload,
-			remove_tmpfile, ap_null_cleanup);
+    apr_pool_cleanup_register(r->pool, (void *)upload,
+			      remove_tmpfile, apr_pool_cleanup_null);
     return fp;
 
 }
@@ -477,7 +477,7 @@ int ApacheRequest_parse_multipart(ApacheRequest *req)
 {
     request_rec *r = req->r;
     int rc = OK;
-    const char *ct = ap_table_get(r->headers_in, "Content-Type");
+    const char *ct = apr_table_get(r->headers_in, "Content-Type");
     long length;
     char *boundary;
     multipart_buffer *mbuff;
@@ -537,13 +537,13 @@ int ApacheRequest_parse_multipart(ApacheRequest *req)
 	    return OK;
 	}
 
-	if ((cd = ap_table_get(header, "Content-Disposition"))) {
+	if ((cd = apr_table_get(header, "Content-Disposition"))) {
 	    const char *pair;
 
 	    while (*cd && (pair = ap_getword(r->pool, &cd, ';'))) {
 		const char *key;
 
-		while (ap_isspace(*cd)) {
+		while (apr_isspace(*cd)) {
 		    ++cd;
 		}
 		if (ap_ind(pair, '=')) {
@@ -558,7 +558,7 @@ int ApacheRequest_parse_multipart(ApacheRequest *req)
 	    }
 	    if (!filename) {
 	        char *value = multipart_buffer_read_body(mbuff);
-	        ap_table_add(req->parms, param, value);
+	        apr_table_add(req->parms, param, value);
 		continue;
 	    }
 	    if (!param) continue; /* shouldn't happen, but just in case. */
@@ -568,7 +568,7 @@ int ApacheRequest_parse_multipart(ApacheRequest *req)
                 return HTTP_FORBIDDEN;
             }
 
-	    ap_table_add(req->parms, param, filename);
+	    apr_table_add(req->parms, param, filename);
 
 	    if (upload) {
 		upload->next = ApacheUpload_new(req);
@@ -584,8 +584,8 @@ int ApacheRequest_parse_multipart(ApacheRequest *req)
 	    }
 
 	    upload->info = header;
-	    upload->filename = ap_pstrdup(req->r->pool, filename);
-	    upload->name = ap_pstrdup(req->r->pool, param);
+	    upload->filename = apr_pstrdup(req->r->pool, filename);
+	    upload->name = apr_pstrdup(req->r->pool, param);
 
             /* mozilla empty-file (missing CRLF) hack */
             fill_buffer(mbuff);
@@ -664,7 +664,7 @@ static time_t expire_calc(char *time_str)
     }
 
     /* wtf, ap_isdigit() returns false for '1' !? */
-    while (*time_str && (ap_isdigit(*time_str) || (*time_str == '1'))) {
+    while (*time_str && (apr_isdigit(*time_str) || (*time_str == '1'))) {
 	buf[ix++] = *time_str++;
     }
     buf[ix] = '\0';
@@ -687,14 +687,14 @@ char *ApacheUtil_expires(pool *p, char *time_str, int type)
     when = expire_calc(time_str);
 
     if (!when) {
-	return ap_pstrdup(p, time_str);
+	return apr_pstrdup(p, time_str);
     }
 
     tms = gmtime(&when);
-    return ap_psprintf(p,
+    return apr_psprintf(p,
 		       "%s, %.2d%c%s%c%.2d %.2d:%.2d:%.2d GMT",
-		       ap_day_snames[tms->tm_wday],
-		       tms->tm_mday, sep, ap_month_snames[tms->tm_mon], sep,
+		       apr_day_snames[tms->tm_wday],
+		       tms->tm_mday, sep, apr_month_snames[tms->tm_mon], sep,
 		       tms->tm_year + 1900,
 		       tms->tm_hour, tms->tm_min, tms->tm_sec);
 }

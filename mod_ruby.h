@@ -99,6 +99,34 @@ typedef apr_table_entry_t table_entry;
 #define APR_CLEANUP_RETURN_SUCCESS() return
 
 #include "http_conf_globals.h"
+#define apr_palloc(p, size) ap_palloc(p, size)
+#define apr_pcalloc(p, type) ap_palloc(p, type)
+#define apr_pool_cleanup_register ap_register_cleanup
+#define apr_pool_cleanup_null ap_null_cleanup
+#define apr_array_make(p, n, size) ap_make_array(p, n, size)
+#define apr_array_push(ary) ap_push_array(ary)
+#define apr_array_append(p, ary1, ary2) ap_append_arrays(p, ary1, ary2)
+#define apr_table_make(p, n) ap_make_table(p, n)
+#define apr_table_elts(tbl) ap_table_elts(tbl)
+#define apr_table_get(tbl, key) ap_table_get(tbl, key)
+#define apr_table_add(tbl, key, val) ap_table_add(tbl, key, val)
+#define apr_table_set(tbl, key, val) ap_table_set(tbl, key, val)
+#define apr_table_setn(tbl, key, val) ap_table_setn(tbl, key, val)
+#define apr_table_unset(tbl, key) ap_table_unset(tbl, key)
+#define apr_table_overlay(p, tbl1, tbl2) ap_overlay_tables(p, tbl1, tbl2)
+#define apr_table_merge(p, tbl1, tbl2) ap_table_merge(p, tbl1, tbl2)
+#define apr_table_do ap_table_do
+#define apr_table_clear(tbl) ap_clear_table(tbl)
+#define apr_pstrdup(p, s) ap_pstrdup(p, s)
+#define apr_pstrndup(p, s, n) ap_pstrndup(p, s, n)
+#define apr_pstrcat ap_pstrcat
+#define apr_psprintf ap_psprintf
+#define apr_isspace(c) ap_isspace(c)
+#define apr_isdigit(c) ap_isdigit(c)
+#define apr_isxdigit(c) ap_isxdigit(c)
+#define apr_day_snames ap_day_snames
+#define apr_month_snames ap_month_snames
+#define apr_time_sec(t) (t)
 
 #endif
 
@@ -168,7 +196,7 @@ typedef struct {
 } ruby_dir_config;
 
 typedef struct {
-    char *filename;
+    const char *filename;
     ruby_server_config *server_config;
     ruby_dir_config *dir_config;
 } ruby_library_context;

@@ -172,17 +172,17 @@ static int find_boundary(multipart_buffer *self, char *boundary)
 multipart_buffer *multipart_buffer_new(char *boundary, long length, request_rec *r)
 {
     multipart_buffer *self = (multipart_buffer *)
-	ap_pcalloc(r->pool, sizeof(multipart_buffer));
+	apr_pcalloc(r->pool, sizeof(multipart_buffer));
 
     int minsize = strlen(boundary)+6;
     if(minsize < FILLUNIT) minsize = FILLUNIT;
 
     self->r = r;
-    self->buffer = (char *) ap_pcalloc(r->pool, minsize+1);
+    self->buffer = (char *) apr_pcalloc(r->pool, minsize+1);
     self->bufsize = minsize;
     self->request_length = length;
-    self->boundary = ap_pstrcat(r->pool, "--", boundary, NULL);
-    self->boundary_next = ap_pstrcat(r->pool, "\n", self->boundary, NULL);
+    self->boundary = apr_pstrcat(r->pool, "--", boundary, NULL);
+    self->boundary_next = apr_pstrcat(r->pool, "\n", self->boundary, NULL);
     self->buf_begin = self->buffer;
     self->bytes_in_buffer = 0;
 
@@ -199,7 +199,7 @@ table *multipart_buffer_headers(multipart_buffer *self)
     if(!find_boundary(self, self->boundary)) return NULL;
 
     /* get lines of text, or CRLF_CRLF */
-    tab = ap_make_table(self->r->pool, 10);
+    tab = apr_table_make(self->r->pool, 10);
     while( (line = get_line(self)) && strlen(line) > 0 ) {
 	/* add header to table */
 	char *key = line;
@@ -207,7 +207,7 @@ table *multipart_buffer_headers(multipart_buffer *self)
 
 	if(value) {
 	    *value = 0;
-	    do { value++; } while(ap_isspace(*value));
+	    do { value++; } while(apr_isspace(*value));
 
 #ifdef DEBUG
 	    ap_log_rerror(MPB_ERROR,
@@ -215,7 +215,7 @@ table *multipart_buffer_headers(multipart_buffer *self)
 			  key, value);
 #endif
 
-	    ap_table_add(tab, key, value);
+	    apr_table_add(tab, key, value);
 	}
 	else {
 #ifdef DEBUG
@@ -223,7 +223,7 @@ table *multipart_buffer_headers(multipart_buffer *self)
 			  "multipart_buffer_headers: '%s' = ''", key);
 #endif
 
-	    ap_table_add(tab, key, "");
+	    apr_table_add(tab, key, "");
 	}
     }
 
@@ -277,7 +277,7 @@ char *multipart_buffer_read_body(multipart_buffer *self)
     char buf[FILLUNIT], *out = "";
 
     while(multipart_buffer_read(self, buf, sizeof(buf)))
-	out = ap_pstrcat(self->r->pool, out, buf, NULL);
+	out = apr_pstrcat(self->r->pool, out, buf, NULL);
 
 #ifdef DEBUG
     ap_log_rerror(MPB_ERROR, "multipart_buffer_read_body: '%s'", out);

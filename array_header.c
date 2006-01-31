@@ -79,7 +79,7 @@ static VALUE array_aset(VALUE self, VALUE idx, VALUE val)
     else if (n >= arr->nelts) {
 	rb_raise(rb_eIndexError, "index %d out of array", n);
     }
-    ((char **) arr->elts)[n] = ap_pstrndup(arr->pool,
+    ((char **) arr->elts)[n] = apr_pstrndup(arr->pool,
 					   RSTRING(val)->ptr,
 					   RSTRING(val)->len);
     return val;

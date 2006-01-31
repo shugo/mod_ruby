@@ -76,6 +76,19 @@ typedef struct request_data {
 #define REQUEST_STRING_ATTR_READER(fname, member) \
 	DEFINE_STRING_ATTR_READER(fname, request_data, request->member)
 
+#ifdef APACHE2
+#define REQUEST_STRING_ATTR_WRITER(fname, member) \
+static VALUE fname(VALUE self, VALUE val) \
+{ \
+    request_data *data; \
+    Check_Type(val, T_STRING); \
+    data = get_request_data(self); \
+    data->request->member = \
+	apr_pstrndup(data->request->pool, \
+		    RSTRING(val)->ptr, RSTRING(val)->len); \
+    return val; \
+}
+#else
 #define REQUEST_STRING_ATTR_WRITER(fname, member) \
 static VALUE fname(VALUE self, VALUE val) \
 { \
@@ -87,6 +100,7 @@ static VALUE fname(VALUE self, VALUE val) \
 		    RSTRING(val)->ptr, RSTRING(val)->len); \
     return val; \
 }
+#endif
 
 #define REQUEST_INT_ATTR_READER(fname, member) \
 	DEFINE_INT_ATTR_READER(fname, request_data, request->member)
@@ -178,7 +192,7 @@ static VALUE apache_request_new(request_rec *r)
     data->cookies = rb_hash_new();
     data->param_table = Qnil;
     data->options = rb_hash_new();
-    opts_arr = ap_table_elts(dconf->options);
+    opts_arr = apr_table_elts(dconf->options);
     opts = (table_entry *) opts_arr->elts;
     for (i = 0; i < opts_arr->nelts; i++) {
         if (opts[i].key == NULL)
@@ -193,8 +207,8 @@ static VALUE apache_request_new(request_rec *r)
 	ruby_request_config *rconf = get_request_config(r);
 	rconf->request_object = obj;
     }
-    ap_register_cleanup(r->pool, (void *) r,
-			cleanup_request_object, ap_null_cleanup);
+    apr_pool_cleanup_register(r->pool, (void *) r,
+			cleanup_request_object, apr_pool_cleanup_null);
     if (dconf) {
 	switch (dconf->output_mode) {
 	    case MR_OUTPUT_SYNC_HEADER:
@@ -604,11 +618,7 @@ static VALUE request_request_time(VALUE self)
     request_data *data;
 
     data = get_request_data(self);
-#ifdef APACHE2
     return rb_time_new(apr_time_sec(data->request->request_time), 0);
-#else
-    return rb_time_new(data->request->request_time, 0);
-#endif
 }
 
 static VALUE request_header_only(VALUE self)
@@ -626,7 +636,7 @@ static VALUE request_content_length(VALUE self)
 
     rb_warn("content_length is obsolete; use headers_in[\"Content-Length\"] instead");
     data = get_request_data(self);
-    s = ap_table_get(data->request->headers_in, "Content-Length");
+    s = apr_table_get(data->request->headers_in, "Content-Length");
     return s ? rb_cstr2inum(s, 10) : Qnil;
 }
 
@@ -642,7 +652,7 @@ static VALUE request_set_content_type(VALUE self, VALUE str)
 	Check_Type(str, T_STRING);
 	str = rb_funcall(str, rb_intern("downcase"), 0);
 	data->request->content_type =
-	    ap_pstrndup(data->request->pool,
+	    apr_pstrndup(data->request->pool,
 			RSTRING(str)->ptr, RSTRING(str)->len);
     }
     return str;
@@ -660,7 +670,7 @@ static VALUE request_set_content_encoding(VALUE self, VALUE str)
 	Check_Type(str, T_STRING);
 	str = rb_funcall(str, rb_intern("downcase"), 0);
 	data->request->content_encoding =
-	    ap_pstrndup(data->request->pool,
+	    apr_pstrndup(data->request->pool,
 			RSTRING(str)->ptr,
 			RSTRING(str)->len);
     }
@@ -695,12 +705,12 @@ static VALUE request_set_content_languages(VALUE self, VALUE ary)
 	    Check_Type(RARRAY(ary)->ptr[i], T_STRING);
 	}
 	data->request->content_languages =
-	    ap_make_array(data->request->pool, RARRAY(ary)->len, sizeof(char *));
+	    apr_array_make(data->request->pool, RARRAY(ary)->len, sizeof(char *));
 	for (i = 0; i < RARRAY(ary)->len; i++) {
 	    VALUE str = RARRAY(ary)->ptr[i];
 	    str = rb_funcall(str, rb_intern("downcase"), 0);
-	    *(char **) ap_push_array(data->request->content_languages) =
-		ap_pstrndup(data->request->pool,
+	    *(char **) apr_array_push(data->request->content_languages) =
+		apr_pstrndup(data->request->pool,
 			    RSTRING(str)->ptr,
 			    RSTRING(str)->len);
 	}
@@ -939,7 +949,7 @@ static VALUE read_client_block(request_rec *r, int len)
     if (ap_should_client_block(r)) {
 	if (len < 0)
 	    len = r->remaining;
-	buf = (char *) ap_palloc(r->pool, len);
+	buf = (char *) apr_palloc(r->pool, len);
 	result = rb_tainted_str_new("", 0);
 	while (len > 0) {
 	    nrd = ap_get_client_block(r, buf, len);
@@ -1193,7 +1203,7 @@ static VALUE request_soft_timeout(VALUE self, VALUE name)
 
     Check_Type(name, T_STRING);
     data = get_request_data(self);
-    s = ap_pstrndup(data->request->pool, RSTRING(name)->ptr, RSTRING(name)->len);
+    s = apr_pstrndup(data->request->pool, RSTRING(name)->ptr, RSTRING(name)->len);
     ap_soft_timeout(s, data->request);
     return Qnil;
 }
@@ -1340,7 +1350,7 @@ static VALUE request_set_user(VALUE self, VALUE val)
 
     Check_Type(val, T_STRING);
     data = get_request_data(self);
-    data->request->user = ap_pstrndup(data->request->pool,
+    data->request->user = apr_pstrndup(data->request->pool,
 				      RSTRING(val)->ptr,
 				      RSTRING(val)->len);
     return val;
@@ -1434,7 +1444,7 @@ static VALUE request_set_auth_type(VALUE self, VALUE val)
     data = get_request_data(self);
     conf = (core_dir_config *)
 	ap_get_module_config(data->request->per_dir_config, &core_module);
-    conf->ap_auth_type = ap_pstrndup(data->request->pool,
+    conf->ap_auth_type = apr_pstrndup(data->request->pool,
 				     RSTRING(val)->ptr,
 				     RSTRING(val)->len);
     ap_set_module_config(data->request->per_dir_config, &core_module, conf);
@@ -1466,7 +1476,7 @@ static VALUE request_set_auth_name(VALUE self, VALUE val)
     data = get_request_data(self);
     conf = (core_dir_config *)
 	ap_get_module_config(data->request->per_dir_config, &core_module);
-    conf->ap_auth_name = ap_pstrndup(data->request->pool,
+    conf->ap_auth_name = apr_pstrndup(data->request->pool,
 				     RSTRING(val)->ptr,
 				     RSTRING(val)->len);
     ap_set_module_config(data->request->per_dir_config, &core_module, conf);
@@ -1598,7 +1608,7 @@ static VALUE request_get_cache_resp(VALUE self)
         data->headers_out = rb_apache_table_new(data->request->headers_out);
 
     Data_Get_Struct(data->headers_out, table, tbl);
-    hdrs_arr = ap_table_elts(tbl);
+    hdrs_arr = apr_table_elts(tbl);
     hdrs = (table_entry *) hdrs_arr->elts;
     for (i = 0; i < hdrs_arr->nelts; i++) {
         if (hdrs[i].key == NULL)
@@ -1623,12 +1633,12 @@ static VALUE request_set_cache_resp(VALUE self, VALUE arg)
 
     Data_Get_Struct(data->headers_out, table, tbl);
     if (arg == Qtrue) {
-        ap_table_setn(tbl, "Pragma", "no-cache");
-	ap_table_setn(tbl, "Cache-control", "no-cache");
+        apr_table_setn(tbl, "Pragma", "no-cache");
+	apr_table_setn(tbl, "Cache-control", "no-cache");
 	return Qtrue;
     } else {
-        ap_table_unset(tbl, "Pragma");
-	ap_table_unset(tbl, "Cache-control");
+        apr_table_unset(tbl, "Pragma");
+	apr_table_unset(tbl, "Cache-control");
 	return Qfalse;
     }
 }
@@ -1718,18 +1728,18 @@ static VALUE request_register_cleanup(int argc, VALUE *argv, VALUE self)
     if (argc == 0)
 	plain_cleanup = rb_f_lambda();
     if (NIL_P(plain_cleanup))
-	plain_cleanup_func = ap_null_cleanup;
+	plain_cleanup_func = apr_pool_cleanup_null;
     else
 	plain_cleanup_func = call_plain_cleanup;
     if (NIL_P(child_cleanup))
-	child_cleanup_func = ap_null_cleanup;
+	child_cleanup_func = apr_pool_cleanup_null;
     else
 	child_cleanup_func = call_child_cleanup;
-    cleanup = ap_palloc(data->request->pool, sizeof(request_cleanup_t));
+    cleanup = apr_palloc(data->request->pool, sizeof(request_cleanup_t));
     cleanup->pool = data->request->pool;
     cleanup->plain_cleanup = plain_cleanup;
     cleanup->child_cleanup = child_cleanup;
-    ap_register_cleanup(data->request->pool, (void *) cleanup,
+    apr_pool_cleanup_register(data->request->pool, (void *) cleanup,
 			plain_cleanup_func, child_cleanup_func);
     
     return Qnil;
@@ -1992,7 +2002,7 @@ static VALUE request_all_params(VALUE self, VALUE key)
 
     if (!data->apreq->parsed) rb_funcall(self, rb_intern("parse"), 0);
     result = rb_hash_new();
-    ap_table_do(make_all_params, (void *) result, data->apreq->parms, NULL);
+    apr_table_do(make_all_params, (void *) result, data->apreq->parms, NULL);
     return result;
 }
 
