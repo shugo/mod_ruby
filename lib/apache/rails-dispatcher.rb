@@ -186,11 +186,21 @@ module Apache
       ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS.replace(DEFAULT_SESSION_OPTIONS)
     end
 
+    NON_CONFIGURATION_METHODS = [
+        "connection",
+        "connection_without_query_cache",
+        "table_name",
+        "sequence_name",
+        "timestamps_gmt",
+        "observers"
+    ]
+
     def self.get_configuration_methods(target_class)
+      re = Regexp.new("\\A(" + NON_CONFIGURATION_METHODS.join("|") + ")\\z")
       return target_class.singleton_methods.collect { |m|
         m.slice(/(\w+)=\z/n, 1)
       }.reject { |m|
-        m.nil? || /\A(connection|table_name|timestamps_gmt)\z/.match(m)
+        m.nil? || re.match(m)
       }
     end
 
