@@ -497,7 +497,13 @@ AC_WITH("apxs") { |withval|
 
 if $APXS
   $APACHE_INCLUDES = "-I" + `#{$APXS} -q INCLUDEDIR`.chomp
-  apache_cflags = `#{$APXS} -q CFLAGS`.chomp
+  apache_cflags = ""
+  for x in %w(CFLAGS NOTEST_CPPFLAGS EXTRA_CPPFLAGS EXTRA_CFLAGS)
+    s = `#{$APXS} -q #{x} 2> /dev/null`.chomp
+    if $? == 0
+      apache_cflags += " #{s}"
+    end
+  end
   apache_cflags.gsub!(/-I\S+/) do |inc|
     $APACHE_INCLUDES += " " + inc
     ""
