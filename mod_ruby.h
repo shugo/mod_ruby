@@ -181,6 +181,7 @@ typedef struct {
     int output_mode;
     array_header *load_path;
     table *options;
+    int gc_per_request;
     array_header *ruby_handler;
     array_header *ruby_trans_handler;
     array_header *ruby_authen_handler;
@@ -206,9 +207,10 @@ typedef struct {
     VALUE request_object;
 } ruby_request_config;
 
-#define MR_DEFAULT_TIMEOUT 270
+#define MR_DEFAULT_TIMEOUT 0
 #define MR_DEFAULT_SAFE_LEVEL 1
 #define MR_DEFAULT_RESTRICT_DIRECTIVES 0
+#define MR_DEFAULT_GC_PER_REQUEST 0
 
 #define MR_OUTPUT_DEFAULT	0
 #define MR_OUTPUT_NOSYNC	1

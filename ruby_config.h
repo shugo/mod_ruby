@@ -44,6 +44,7 @@ const char *ruby_cmd_safe_level(cmd_parms*, void*, const char*);
 const char *ruby_cmd_output_mode(cmd_parms*, void*, const char*);
 const char *ruby_cmd_restrict_directives(cmd_parms*, void*, int);
 const char *ruby_cmd_option(cmd_parms*, void*, const char*, const char*);
+const char *ruby_cmd_gc_per_request(cmd_parms*, void*, int);
 const char *ruby_cmd_handler(cmd_parms*, void*, const char*);
 const char *ruby_cmd_trans_handler(cmd_parms*, void*, const char*);
 const char *ruby_cmd_authen_handler(cmd_parms*, void*, const char*);

@@ -100,6 +100,7 @@ void *ruby_create_dir_config(pool *p, char *dirname)
     conf->output_mode = MR_OUTPUT_DEFAULT;
     conf->load_path = NULL;
     conf->options = apr_table_make(p, 5); 
+    conf->gc_per_request = MR_DEFAULT_GC_PER_REQUEST;
     conf->ruby_handler = NULL;
     conf->ruby_trans_handler = NULL;
     conf->ruby_authen_handler = NULL;
@@ -144,6 +145,8 @@ void *ruby_merge_dir_config(pool *p, void *basev, void *addv)
     }
 
     new->options = apr_table_overlay(p, add->options, base->options);
+    new->gc_per_request =
+	add->gc_per_request ? add->gc_per_request : base->gc_per_request;
 
     new->ruby_handler =
 	merge_handlers(p, base->ruby_handler, add->ruby_handler);
@@ -403,6 +406,13 @@ const char *ruby_cmd_option(cmd_parms *cmd, void *conf,
 {
     check_restrict_directives(cmd, conf)
     apr_table_set(((ruby_dir_config *) conf)->options, key, val);
+    return NULL;
+}
+
+const char *ruby_cmd_gc_per_request(cmd_parms *cmd, void *conf, int flag)
+{
+    check_restrict_directives(cmd, conf)
+    ((ruby_dir_config *) conf)->gc_per_request = flag;
     return NULL;
 }
 

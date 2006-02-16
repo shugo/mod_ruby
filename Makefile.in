@@ -80,6 +80,7 @@ RUBYLIBS	= apache/ruby-run.rb \
 		  apache/rd2html.rb \
 		  apache/ruby-debug.rb \
 		  apache/eruby-debug.rb \
+		  apache/ruby-profile.rb \
 		  apache/rails-dispatcher.rb \
 		  apache/query.rb \
 		  auto-reload.rb

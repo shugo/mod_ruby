@@ -180,6 +180,8 @@ static const command_rec ruby_cmds[] = {
      RSRC_CONF, "whether Ruby* directives are restricted from .htaccess"),
     AP_INIT_TAKE2("RubyOption", ruby_cmd_option, NULL, OR_ALL,
      "set option for application"),
+    AP_INIT_FLAG("RubyGcPerRequest", ruby_cmd_gc_per_request, NULL, 
+     OR_ALL, "whether to call GC for each request"),
     AP_INIT_TAKE1("RubyHandler", ruby_cmd_handler, NULL, OR_ALL,
      "set ruby handler object"),
     AP_INIT_TAKE1("RubyTransHandler", ruby_cmd_trans_handler, NULL, OR_ALL,
@@ -1022,19 +1024,22 @@ typedef struct run_safely_arg {
     void *arg;
 } run_safely_arg_t;
 
-static VALUE run_safely_0(void *arg)
+static VALUE run_safely_0(VALUE arg)
 {
     run_safely_arg_t *rsarg = (run_safely_arg_t *) arg;
     struct timeout_arg targ;
-    VALUE timeout_thread;
+    VALUE timeout_thread = Qnil;
     VALUE result;
 
     rb_set_safe_level(rsarg->safe_level);
-    targ.thread = rb_thread_current();
-    targ.timeout = rsarg->timeout;
-    timeout_thread = rb_thread_create(do_timeout, (void *) &targ);
+    if (rsarg->timeout > 0) {
+	targ.thread = rb_thread_current();
+	targ.timeout = rsarg->timeout;
+	timeout_thread = rb_thread_create(do_timeout, (void *) &targ);
+    }
     result = (*rsarg->func)(rsarg->arg);
-    rb_protect_funcall(timeout_thread, rb_intern("kill"), NULL, 0);
+    if (!NIL_P(timeout_thread))
+	rb_protect_funcall(timeout_thread, rb_intern("kill"), NULL, 0);
     return result;
 }
 
@@ -1052,8 +1057,13 @@ static int run_safely(int safe_level, int timeout,
 #if defined(HAVE_SETITIMER)
     rb_thread_start_timer();
 #endif
-    thread = rb_thread_create(run_safely_0, &rsarg);
-    ret = rb_protect_funcall(thread, rb_intern("value"), &state, 0);
+    if (safe_level > ruby_safe_level) {
+	thread = rb_thread_create(run_safely_0, &rsarg);
+	ret = rb_protect_funcall(thread, rb_intern("value"), &state, 0);
+    }
+    else {
+	ret = rb_protect(run_safely_0, (VALUE) &rsarg, &state);
+    }
     rb_protect(kill_threads, Qnil, NULL);
 #if defined(HAVE_SETITIMER)
     rb_thread_stop_timer();
@@ -1134,6 +1144,7 @@ static VALUE exec_end_proc(VALUE arg)
 
 static void per_request_cleanup(request_rec *r, int flush)
 {
+    ruby_dir_config *dconf = get_dir_config(r);
     VALUE reqobj;
 
     while (r->next)
@@ -1165,7 +1176,8 @@ static void per_request_cleanup(request_rec *r, int flush)
 	restore_env(r->pool, rconf->saved_env);
     }
     rb_progname = Qnil;
-    rb_gc();
+    if (dconf->gc_per_request)
+	rb_gc();
 }
 
 typedef struct handler_0_arg {
