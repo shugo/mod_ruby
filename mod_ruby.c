@@ -1266,7 +1266,7 @@ static void *ruby_handler_internal(handler_internal_arg_t *iarg)
 	    if (!warned_timeout)
 		ruby_log_error(APLOG_MARK, APLOG_WARNING | APLOG_NOERRNO,
 			       r->server,
-			       "disabled RubyTimeout: RubyTimeout >= Timeout");
+			       "disabled RubyTimeOut: RubyTimeOut >= TimeOut");
 	    timeout = 0;
 	    warned_timeout = 1;
 	}
