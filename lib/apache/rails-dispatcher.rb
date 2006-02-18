@@ -71,21 +71,24 @@ module Apache
                       nil, "n")
       filename = File.expand_path(r.uri.sub(re, "public/"),
                                   r.options["rails_root"])
-      stat = File.stat(filename)
-      if stat.file?
-        r.filename = filename
-        return OK
-      end
-      if stat.directory?
-        file = ["index.html", "index.htm"].collect { |f|
-          File.expand_path(f, filename)
-        }.detect { |f|
-          File.file?(f)
-        }
-        if file
-          r.filename = file
+      begin
+        stat = File.stat(filename)
+        if stat.file?
+          r.filename = filename
           return OK
         end
+        if stat.directory?
+          file = ["index.html", "index.htm"].collect { |f|
+            File.expand_path(f, filename)
+          }.detect { |f|
+            File.file?(f)
+          }
+          if file
+            r.filename = file
+            return OK
+          end
+        end
+      rescue Errno::ENOENT
       end
       return DECLINED
     end
