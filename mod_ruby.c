@@ -1242,6 +1242,10 @@ static void *ruby_handler_internal(handler_internal_arg_t *iarg)
     handler_0_arg_t arg;
     int i, handlers_len;
     char **handlers;
+    int timeout;
+#ifndef APACHE2
+    static int warned_timeout = 0;
+#endif
 
     sconf = get_server_config(r->server);
     dconf = get_dir_config(r);
@@ -1256,7 +1260,18 @@ static void *ruby_handler_internal(handler_internal_arg_t *iarg)
 	arg.handler = handlers[i];
 	arg.mid = mid;
 	ap_soft_timeout("call ruby handler", r);
-	if ((state = run_safely(safe_level, sconf->timeout,
+	timeout = sconf->timeout;
+#ifndef APACHE2
+	if (timeout >= r->server->timeout) {
+	    if (!warned_timeout)
+		ruby_log_error(APLOG_MARK, APLOG_WARNING | APLOG_NOERRNO,
+			       r->server,
+			       "disabled RubyTimeout: RubyTimeout >= Timeout");
+	    timeout = 0;
+	    warned_timeout = 1;
+	}
+#endif
+	if ((state = run_safely(safe_level, timeout,
 				ruby_handler_0, &arg, &ret)) == 0) {
 	    iarg->retval = NUM2INT(ret);
 	}
