@@ -34,10 +34,10 @@ Apache::RailsDispatcher dispatches requests to Rails applications.
 
   RubySafeLevel 0
   RubyRequire apache/rails-dispatcher
-  RubyTransHandler Apache::RailsDispatcher.instance
   <Location /appname>
     SetHandler ruby-object
     RubyHandler Apache::RailsDispatcher.instance
+    RubyTransHandler Apache::RailsDispatcher.instance
     RubyOption rails_uri_root /appname
     RubyOption rails_root /path/to/rails/root
     RubyOption rails_env development
@@ -47,12 +47,16 @@ Apache::RailsDispatcher dispatches requests to Rails applications.
 
 require "set"
 require "singleton"
+require "initializer"
 require "active_support"
 require "active_record"
 require "action_controller"
 require "action_mailer"
 require "action_web_service"
 require "active_support/whiny_nil"
+require "rails_info"
+
+Object.send(:remove_const, :RAILS_ENV)
 
 module Apache
   class RailsDispatcher
@@ -419,6 +423,16 @@ class << Marshal
       else
         raise
       end
+    end
+  end
+end
+
+module Rails
+  class Initializer
+    @@loaded_plugins = Set.new
+
+    def loaded_plugins
+      return @@loaded_plugins
     end
   end
 end
