@@ -25,6 +25,7 @@
 * ((<RubySafeLevel|RubySafeLevel level>))
 * ((<RubyOutputMode|RubyOutputMode mode>))
 * ((<RubyRestrictDirectives|RubyRestrictDirectives flag>))
+* ((<RubyGcPerRequest|RubyGcPerRequest flag>))
 * ((<RubyKanjiCode|RubyKanjiCode kcode>))
 
 --- RubyAddPath directory...
@@ -257,6 +258,13 @@
       example:
 
         RubyRestrictDirectives on
+
+--- RubyGcPerRequest flag
+      Specifies whether to call GC at the end of each request.
+
+      example:
+
+        RubyGcPerRequest on
 
 --- RubyKanjiCode kcode
       Specifies the value of ((|$KCODE|)).
