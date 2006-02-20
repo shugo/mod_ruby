@@ -110,6 +110,10 @@ module Apache
       env = get_environment(r.options["rails_root"])
       # set classpath for Marshal
       Apache::RailsDispatcher.const_set(:CURRENT_MODULE, env.module)
+      ActionView::Base.class_eval do
+        @@compile_time = env.compile_time
+      end
+      ActionView::Base::CompiledTemplates.module = env.compiled_templates_module
       Dependencies.loaded = env.loaded_dependencies
       @@current_environment = env
       begin
@@ -242,7 +246,8 @@ module Apache
 
 
     class Environment
-      attr_reader :rails_root, :binding, :module, :loaded_files, :controllers
+      attr_reader :rails_root, :binding, :module, :loaded_files, :controllers,
+        :compiled_templates_module, :compile_time
       attr_accessor :loaded_dependencies
 
       def initialize(rails_root)
@@ -252,6 +257,8 @@ module Apache
         @loaded_files = Set.new
         @loaded_dependencies = []
         @controllers = nil
+        @compiled_templates_module = Module.new
+        @compile_time = {}
       end
 
       def eval_string(s, filename = "(eval)", lineno = 1)
@@ -433,6 +440,23 @@ module Rails
 
     def loaded_plugins
       return @@loaded_plugins
+    end
+  end
+end
+
+module ActionView
+  class Base
+    module CompiledTemplates
+      @@template_object = nil
+
+      def self.module=(mod)
+        @@template_object = Object.new
+        @@template_object.extend(mod)
+      end
+
+      def method_missing(mid, *args)
+        return @@template_object.send(mid, *args)
+      end
     end
   end
 end
