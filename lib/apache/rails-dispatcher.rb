@@ -110,9 +110,7 @@ module Apache
       env = get_environment(r.options["rails_root"])
       # set classpath for Marshal
       Apache::RailsDispatcher.const_set(:CURRENT_MODULE, env.module)
-      ActionView::Base.class_eval do
-        @@compile_time = env.compile_time
-      end
+      ActionView::Base.class_eval("@@compile_time = env.compile_time")
       ActionView::Base::CompiledTemplates.module = env.compiled_templates_module
       Dependencies.loaded = env.loaded_dependencies
       @@current_environment = env
