@@ -205,7 +205,8 @@ static VALUE apache_request_new(request_rec *r)
     rb_apache_register_object(obj);
     if (r->request_config) {
 	ruby_request_config *rconf = get_request_config(r);
-	rconf->request_object = obj;
+	if (rconf)
+	    rconf->request_object = obj;
     }
     apr_pool_cleanup_register(r->pool, (void *) r,
 			cleanup_request_object, apr_pool_cleanup_null);
@@ -231,7 +232,7 @@ VALUE rb_get_request_object(request_rec *r)
     if (r == NULL) return Qnil;
     if (r->request_config) {
 	ruby_request_config *rconf = get_request_config(r);
-	if (!NIL_P(rconf->request_object))
+	if (rconf && !NIL_P(rconf->request_object))
 	    return rconf->request_object;
     }
     return apache_request_new(r);

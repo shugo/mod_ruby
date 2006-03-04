@@ -526,7 +526,7 @@ static void handle_error(request_rec *r, int state)
     errmsg = ruby_get_error_info(state);
     if (r->request_config) {
 	rconf = get_request_config(r);
-	if (!NIL_P(rconf->request_object))
+	if (rconf && !NIL_P(rconf->request_object))
 	    rb_apache_request_set_error(rconf->request_object,
 					errmsg, ruby_errinfo);
     }
@@ -1173,7 +1173,8 @@ static void per_request_cleanup(request_rec *r, int flush)
     rb_set_kcode(default_kcode);
     if (r->request_config) {
 	ruby_request_config *rconf = get_request_config(r);
-	restore_env(r->pool, rconf->saved_env);
+	if (rconf)
+	    restore_env(r->pool, rconf->saved_env);
     }
     rb_progname = Qnil;
     if (dconf->gc_per_request)
