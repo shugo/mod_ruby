@@ -651,7 +651,6 @@ static VALUE request_set_content_type(VALUE self, VALUE str)
     }
     else {
 	Check_Type(str, T_STRING);
-	str = rb_funcall(str, rb_intern("downcase"), 0);
 	data->request->content_type =
 	    apr_pstrndup(data->request->pool,
 			RSTRING(str)->ptr, RSTRING(str)->len);
@@ -669,7 +668,6 @@ static VALUE request_set_content_encoding(VALUE self, VALUE str)
     }
     else {
 	Check_Type(str, T_STRING);
-	str = rb_funcall(str, rb_intern("downcase"), 0);
 	data->request->content_encoding =
 	    apr_pstrndup(data->request->pool,
 			RSTRING(str)->ptr,
@@ -709,7 +707,6 @@ static VALUE request_set_content_languages(VALUE self, VALUE ary)
 	    apr_array_make(data->request->pool, RARRAY(ary)->len, sizeof(char *));
 	for (i = 0; i < RARRAY(ary)->len; i++) {
 	    VALUE str = RARRAY(ary)->ptr[i];
-	    str = rb_funcall(str, rb_intern("downcase"), 0);
 	    *(char **) apr_array_push(data->request->content_languages) =
 		apr_pstrndup(data->request->pool,
 			    RSTRING(str)->ptr,
