@@ -300,7 +300,11 @@ $LD = "$(CC)"
 $RANLIB = CONFIG["RANLIB"]
 $ruby = arg_config("--ruby", File.join(Config::CONFIG["bindir"], CONFIG["ruby_install_name"]))
 $RUBY = ($nmake && !$configure_args.has_key?('--ruby')) ? $ruby.gsub(%r'/', '\\') : $ruby
-$RM = CONFIG["RM"] || '$(RUBY) -run -e rm -- -f'
+if RUBY_VERSION < "1.8.0"
+  $RM = 'rm -f'
+else
+  $RM = CONFIG["RM"] || '$(RUBY) -run -e rm -- -f'
+end
 
 if not defined? CFLAGS
   CFLAGS = CONFIG["CFLAGS"]
@@ -360,9 +364,11 @@ when /-aix/
 end
 
 $COMPILE_RULES = ''
-COMPILE_RULES.each do |rule|
-  $COMPILE_RULES << sprintf(rule, 'c', $OBJEXT)
-  $COMPILE_RULES << sprintf("\n\t%s\n\n", COMPILE_C)
+if defined?(COMPILE_RULES)
+  COMPILE_RULES.each do |rule|
+    $COMPILE_RULES << sprintf(rule, 'c', $OBJEXT)
+    $COMPILE_RULES << sprintf("\n\t%s\n\n", COMPILE_C)
+  end
 end
 
 AC_SUBST("srcdir")
@@ -579,10 +585,20 @@ Config.expand(librubyarg)
 $MODULE_LIBS = "#{librubyarg} #{$LIBS}"
 AC_SUBST("MODULE_LIBS")
 
-$LINK_SO = LINK_SO.gsub(/\$\(DLLIB\)/, '$(TARGET)').gsub(/\$\(DLDFLAGS\)/, '$(DLDFLAGS) $(XLDFLAGS)')
+if defined?(LINK_SO)
+  $LINK_SO = LINK_SO.gsub(/\$\(DLLIB\)/, '$(TARGET)').gsub(/\$\(DLDFLAGS\)/, '$(DLDFLAGS) $(XLDFLAGS)')
+else
+  $LINK_SO = '$(LDSHARED) $(DLDFLAGS) $(XLDFLAGS) -o $(TARGET) $(OBJS) $(LIBRUBYARG) $(LIBS)'
+end
 AC_SUBST("LINK_SO")
 
-$libpath = libpathflag("$(APACHE_LIBDIR)") unless $APACHE_LIBDIR.empty?
+unless $APACHE_LIBDIR.empty?
+  begin
+    $libpath = libpathflag("$(APACHE_LIBDIR)") 
+  rescue NameError
+    $libpath = "-L$(APACHE_LIBDIR)"
+  end
+end
 AC_SUBST("libpath")
 
 $DEFFILE = "mod_ruby-#{$arch}.def" if /(ms|bcc)win32|mingw32/ =~ RUBY_PLATFORM

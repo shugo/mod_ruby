@@ -913,6 +913,14 @@ static VALUE request_get_client_block(VALUE self, VALUE length)
 
     data = get_request_data(self);
     len = NUM2INT(length);
+#if RUBY_VERSION_CODE < 180
+    {
+	char *buf = (char *) ap_palloc(data->request->pool, len);
+	len = ap_get_client_block(data->request, buf, len);
+	result = rb_tainted_str_new(buf, len);
+	return result;
+    }
+#else
     result = rb_str_buf_new(len);
     len = ap_get_client_block(data->request, RSTRING(result)->ptr, len);
     switch (len) {
@@ -927,6 +935,7 @@ static VALUE request_get_client_block(VALUE self, VALUE length)
 	OBJ_TAINT(result);
 	return result;
     }
+#endif
 }
 
 static VALUE read_client_block(request_rec *r, int len)

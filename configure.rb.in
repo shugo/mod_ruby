@@ -166,10 +166,20 @@ Config.expand(librubyarg)
 $MODULE_LIBS = "#{librubyarg} #{$LIBS}"
 AC_SUBST("MODULE_LIBS")
 
-$LINK_SO = LINK_SO.gsub(/\$\(DLLIB\)/, '$(TARGET)').gsub(/\$\(DLDFLAGS\)/, '$(DLDFLAGS) $(XLDFLAGS)')
+if defined?(LINK_SO)
+  $LINK_SO = LINK_SO.gsub(/\$\(DLLIB\)/, '$(TARGET)').gsub(/\$\(DLDFLAGS\)/, '$(DLDFLAGS) $(XLDFLAGS)')
+else
+  $LINK_SO = '$(LDSHARED) $(DLDFLAGS) $(XLDFLAGS) -o $(TARGET) $(OBJS) $(LIBRUBYARG) $(LIBS)'
+end
 AC_SUBST("LINK_SO")
 
-$libpath = libpathflag("$(APACHE_LIBDIR)") unless $APACHE_LIBDIR.empty?
+unless $APACHE_LIBDIR.empty?
+  begin
+    $libpath = libpathflag("$(APACHE_LIBDIR)") 
+  rescue NameError
+    $libpath = "-L$(APACHE_LIBDIR)"
+  end
+end
 AC_SUBST("libpath")
 
 $DEFFILE = "mod_ruby-#{$arch}.def" if /(ms|bcc)win32|mingw32/ =~ RUBY_PLATFORM

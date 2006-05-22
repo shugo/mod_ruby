@@ -322,7 +322,11 @@ $LD = "$(CC)"
 $RANLIB = CONFIG["RANLIB"]
 $ruby = arg_config("--ruby", File.join(Config::CONFIG["bindir"], CONFIG["ruby_install_name"]))
 $RUBY = ($nmake && !$configure_args.has_key?('--ruby')) ? $ruby.gsub(%r'/', '\\') : $ruby
-$RM = CONFIG["RM"] || '$(RUBY) -run -e rm -- -f'
+if RUBY_VERSION < "1.8.0"
+  $RM = 'rm -f'
+else
+  $RM = CONFIG["RM"] || '$(RUBY) -run -e rm -- -f'
+end
 
 if not defined? CFLAGS
   CFLAGS = CONFIG["CFLAGS"]
@@ -382,9 +386,11 @@ when /-aix/
 end
 
 $COMPILE_RULES = ''
-COMPILE_RULES.each do |rule|
-  $COMPILE_RULES << sprintf(rule, 'c', $OBJEXT)
-  $COMPILE_RULES << sprintf("\n\t%s\n\n", COMPILE_C)
+if defined?(COMPILE_RULES)
+  COMPILE_RULES.each do |rule|
+    $COMPILE_RULES << sprintf(rule, 'c', $OBJEXT)
+    $COMPILE_RULES << sprintf("\n\t%s\n\n", COMPILE_C)
+  end
 end
 
 AC_SUBST("srcdir")
