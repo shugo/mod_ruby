@@ -54,7 +54,7 @@ require "action_controller"
 require "action_mailer"
 require "action_web_service"
 require "active_support/whiny_nil"
-require "rails_info"
+require "ruby_version_check"
 
 Object.send(:remove_const, :RAILS_ENV)
 
@@ -134,7 +134,7 @@ module Apache
       @@current_environment.load_environment
       conf_constants =
         (@@current_environment.module.constants - old_constants).select { |c|
-        /\A(RAILS_ROOT|RAILS_ENV|ADDITIONAL_LOAD_PATHS|RAILS_DEFAULT_LOGGER|[A-Z_]+_(CONF|PATH|DIR)|Controllers)\z/.match(c)
+        /\A(RAILS_ROOT|RAILS_ENV|ADDITIONAL_LOAD_PATHS|RAILS_DEFAULT_LOGGER|[A-Z_]+_(CONF|PATH|DIR))\z/.match(c)
       }
       begin
         if /\A\/*\z/.match(r.options["rails_uri_root"])
@@ -183,8 +183,8 @@ module Apache
     
     def prepare_application
       ActionController::Routing::Routes.reload if Dependencies.load?
-      unless Controllers.const_defined?(:ApplicationController)
-        Controllers.const_load!(:ApplicationController, "application")
+      unless @@current_environment.module.const_defined?(:ApplicationController)
+        require_dependency("application.rb")
       end
     end
     
@@ -266,12 +266,6 @@ module Apache
         environment_path = File.expand_path("config/environment.rb",
                                             @rails_root)
         load_file(environment_path)
-        if @controllers
-          remove_const(:Controllers)
-          @module.const_set(:Controllers, @controllers)
-        else
-          @controllers = @module.const_get(:Controllers)
-        end
       end
 
       def load_file(filename)
@@ -317,10 +311,18 @@ module Apache
         mod.send(:define_method, :load) do |filename|
           env.load_file(filename)
         end
-#        mod.send(:define_method, :require) do |filename|
-#          env.require_file(filename)
-#        end
+        copy_constants(mod)
         return mod
+      end
+
+      # copy constants for plugins
+      def copy_constants(mod)
+        mod.const_set(:Rails, Rails)
+        mod.const_set(:ActiveRecord, ActiveRecord)
+        mod.const_set(:ActionController, ActionController)
+        mod.const_set(:ActionView, ActionView)
+        mod.const_set(:ActionMailer, ActionMailer)
+        mod.const_set(:ActionWebService, ActionWebService)
       end
     end
   end
@@ -328,13 +330,41 @@ end
 
 module Dependencies
   def require_or_load(file_name)
-    file_name = "#{file_name}.rb" unless ! load? || file_name[-3..-1] == '.rb'
+    file_name = $1 if file_name =~ /^(.*)\.rb$/
+    return if loaded.include?(file_name)
+
+    # Record that we've seen this file *before* loading it to avoid an
+    # infinite loop with mutual dependencies.
+    loaded << file_name
+
     env = Apache::RailsDispatcher.current_environment
     if env
-      load? ? env.load_file(file_name) : env.require_file(file_name)
+      load_func = env.method(:load_file)
+      require_func = env.method(:require_file)
     else
-      load? ? load(file_name) : require(file_name)
+      load_func = method(:load)
+      require_func = method(:require)
     end
+
+    if load?
+      begin
+        # Enable warnings iff this file has not been loaded before and
+        # warnings_on_first_load is set.
+        if !warnings_on_first_load or history.include?(file_name)
+          load_func.call("#{file_name}.rb")
+        else
+          enable_warnings { load_func.call("#{file_name}.rb") }
+        end
+      rescue
+        loaded.delete file_name
+        raise
+      end
+    else
+      require_func.call(file_name)
+    end
+
+    # Record history *after* loading so first load gets warnings.
+    history << file_name
   end
 end
 
@@ -397,12 +427,10 @@ class Module
     if env.module.const_defined?(class_id)
       return env.module.const_get(class_id)
     end
-    if class_id != :Controllers && Object.const_defined?(:Controllers) &&
-      self != Controllers && Controllers.const_available?(class_id)
-      return Controllers.const_get(class_id)
-    end
     begin
-      require_dependency(class_id.to_s.demodulize.underscore)
+      file_name = class_id.to_s.demodulize.underscore
+      file_path = as_load_path.empty? ? file_name : "#{as_load_path}/#{file_name}"
+      require_dependency(file_path)
       if env.module.const_defined?(class_id)
         return env.module.const_get(class_id)
       else
