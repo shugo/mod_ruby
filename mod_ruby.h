@@ -100,7 +100,7 @@ typedef apr_table_entry_t table_entry;
 
 #include "http_conf_globals.h"
 #define apr_palloc(p, size) ap_palloc(p, size)
-#define apr_pcalloc(p, type) ap_palloc(p, type)
+#define apr_pcalloc(p, nbytes) ap_pcalloc(p, nbytes)
 #define apr_pool_cleanup_register ap_register_cleanup
 #define apr_pool_cleanup_null ap_null_cleanup
 #define apr_array_make(p, n, size) ap_make_array(p, n, size)
