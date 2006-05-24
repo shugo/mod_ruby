@@ -39,6 +39,9 @@
 #if RUBY_VERSION_CODE < 190 || RUBY_RELEASE_CODE <= 20050304
 #define rb_frame_this_func() rb_frame_last_func()
 #endif
+#ifndef LONG2NUM
+#define LONG2NUM(x) INT2NUM(x)
+#endif
 
 #if defined(_WIN32)
 #undef pid_t
