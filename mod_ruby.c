@@ -1177,7 +1177,7 @@ static void per_request_cleanup(request_rec *r, int flush)
 	    restore_env(r->pool, rconf->saved_env);
     }
     rb_progname = Qnil;
-    if (dconf->gc_per_request)
+    if (dconf && dconf->gc_per_request)
 	rb_gc();
 }
 

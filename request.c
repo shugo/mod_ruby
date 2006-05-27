@@ -192,14 +192,16 @@ static VALUE apache_request_new(request_rec *r)
     data->cookies = rb_hash_new();
     data->param_table = Qnil;
     data->options = rb_hash_new();
-    opts_arr = apr_table_elts(dconf->options);
-    opts = (table_entry *) opts_arr->elts;
-    for (i = 0; i < opts_arr->nelts; i++) {
-        if (opts[i].key == NULL)
-	    continue;
-	rb_hash_aset(data->options,
-		     rb_tainted_str_new2(opts[i].key),
-		     rb_tainted_str_new2(opts[i].val));
+    if (dconf) {
+        opts_arr = apr_table_elts(dconf->options);
+        opts = (table_entry *) opts_arr->elts;
+        for (i = 0; i < opts_arr->nelts; i++) {
+            if (opts[i].key == NULL)
+                continue;
+            rb_hash_aset(data->options,
+                         rb_tainted_str_new2(opts[i].key),
+                         rb_tainted_str_new2(opts[i].val));
+        }
     }
     
     rb_apache_register_object(obj);
