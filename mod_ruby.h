@@ -166,7 +166,7 @@ typedef apr_table_entry_t table_entry;
 #include "apache_multipart_buffer.h"
 #include "apache_cookie.h"
 
-#define MOD_RUBY_STRING_VERSION "mod_ruby/1.2.5"
+#define MOD_RUBY_STRING_VERSION "mod_ruby/1.2.6"
 #define RUBY_GATEWAY_INTERFACE "CGI-Ruby/1.1"
 
 typedef struct {
