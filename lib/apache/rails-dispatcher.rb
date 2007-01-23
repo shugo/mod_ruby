@@ -98,7 +98,7 @@ module Apache
     end
 
     def handler(r)
-      if !/\Adispatch\.(cgi|fcgi|rb)\z/.match(r.filename) &&
+      if !/\Adispatch\.(cgi|fcgi|rb)\z/.match(File.basename(r.filename)) &&
         File.file?(r.filename)
         return DECLINED
       end
@@ -419,6 +419,19 @@ class Module
     return name__.sub(/\AApache::RailsDispatcher::CURRENT_MODULE::/, "")
   end
 
+  def as_load_path
+    if self == Object || self == Kernel ||
+      self == Apache::RailsDispatcher::CURRENT_MODULE
+      ''
+    elsif is_a? Class
+      parent == self ? '' : parent.as_load_path
+    else
+      name.split('::').collect do |word|
+        word.underscore
+      end * '/'
+    end
+  end
+
   def const_missing(class_id)
     env = Apache::RailsDispatcher.current_environment
     unless env
@@ -431,12 +444,18 @@ class Module
       file_name = class_id.to_s.demodulize.underscore
       file_path = as_load_path.empty? ? file_name : "#{as_load_path}/#{file_name}"
       require_dependency(file_path)
-      if env.module.const_defined?(class_id)
-        return env.module.const_get(class_id)
+      if const_defined?(class_id)
+        return const_get(class_id)
       else
         raise LoadError
       end
     rescue LoadError => e
+      # Look for a directory in the load path that we ought to load.
+      if $LOAD_PATH.any? { |base| File.directory? "#{base}/#{file_path}" }
+        mod = Module.new
+        env.module.const_set class_id, mod
+        return env.module.const_get(class_id)
+      end
       raise NameError.new("uninitialized constant #{class_id}").copy_blame!(e)
     end
   end
