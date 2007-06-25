@@ -149,7 +149,7 @@ module Apache
         request = ActionController::CgiRequest.new(cgi, session_options)
         response = ActionController::CgiResponse.new(cgi)
         prepare_application
-        ActionController::Routing::Routes.recognize!(request).process(request, response).out(r)
+        ActionController::Routing::Routes.recognize(request).process(request, response).out(r)
       rescue Exception => exception
         ActionController::Base.process_with_exception(request, response, exception).out(r)
       ensure
@@ -217,10 +217,11 @@ module Apache
 
     def self.get_configuration_methods(target_class)
       re = Regexp.new("\\A(" + NON_CONFIGURATION_METHODS.join("|") + ")\\z")
-      return target_class.singleton_methods.collect { |m|
+      methods = target_class.singleton_methods
+      return methods.collect { |m|
         m.slice(/(\w+)=\z/n, 1)
       }.reject { |m|
-        m.nil? || re.match(m)
+        m.nil? || re.match(m) || methods.include?("#{m}_without_deprecation")
       }
     end
 
