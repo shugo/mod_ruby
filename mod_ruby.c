@@ -198,6 +198,10 @@ static const command_rec ruby_cmds[] = {
      "set fixup handler object"),
     AP_INIT_TAKE1("RubyLogHandler", ruby_cmd_log_handler, NULL, OR_ALL,
      "set log handler object"),
+#ifdef APACHE2
+    AP_INIT_TAKE1("RubyErrorLogHandler", ruby_cmd_error_log_handler, NULL, OR_ALL,
+     "set log handler object"),
+#endif
     AP_INIT_TAKE1("RubyHeaderParserHandler", ruby_cmd_header_parser_handler,
      NULL, OR_ALL,
      "set header parser object"),
@@ -220,6 +224,7 @@ static const command_rec ruby_cmds[] = {
 
 static int ruby_startup(pool*, pool*, pool*, server_rec*);
 static void ruby_child_init(pool*, server_rec*);
+static void ruby_error_log_handler(const char*, int, int, apr_status_t, const server_rec*, const request_rec*, pool*, const char*);
 
 static void ruby_register_hooks(pool *p)
 {
@@ -233,6 +238,9 @@ static void ruby_register_hooks(pool *p)
     ap_hook_type_checker(ruby_type_handler, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_fixups(ruby_fixup_handler, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_log_transaction(ruby_log_handler, NULL, NULL, APR_HOOK_MIDDLE);
+#ifdef APACHE2
+    ap_hook_error_log(ruby_error_log_handler, NULL, NULL, APR_HOOK_MIDDLE);
+#endif
     ap_hook_child_init(ruby_child_init, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_post_read_request(ruby_post_read_request_handler,
 			      NULL, NULL, APR_HOOK_MIDDLE);
@@ -851,7 +859,7 @@ static request_rec *fake_request_rec(server_rec *s, pool *p, char *hook)
     return r;
 }
 
-static int ruby_handler(request_rec *, array_header *, ID, int, int);
+static int ruby_handler(request_rec *, array_header *, error_log_data *, ID, int, int);
 
 #ifdef APACHE2
 static void ruby_child_init(pool *p, server_rec *s)
@@ -916,7 +924,7 @@ static void ruby_child_init(server_rec *s, pool *p)
 
     r = fake_request_rec(s, p, "RubyChildInitHandler");
     conf = get_server_config(r->server);
-    ruby_handler(r, conf->ruby_child_init_handler,
+    ruby_handler(r, conf->ruby_child_init_handler, NULL,
 		 rb_intern("child_init"), 0, 0);
 }
 
@@ -1115,10 +1123,14 @@ static void per_request_init(request_rec *r)
     ruby_dir_config *dconf;
 
     if (r->request_config) {
-	rconf = apr_palloc(r->pool, sizeof(ruby_request_config));
-	rconf->saved_env = save_env(r->pool);
-	rconf->request_object = Qnil;
-	ap_set_module_config(r->request_config, &ruby_module, rconf);
+	rconf = get_request_config(r);
+        /* may already have request object from successive handler calls */
+	if (rconf == NULL || NIL_P(rconf->request_object)) {
+            rconf = apr_palloc(r->pool, sizeof(ruby_request_config));
+            rconf->saved_env = save_env(r->pool);
+            rconf->request_object = Qnil;
+            ap_set_module_config(r->request_config, &ruby_module, rconf);
+        }
     }
     dconf = get_dir_config(r);
     sconf = get_server_config(r->server);
@@ -1184,6 +1196,7 @@ static void per_request_cleanup(request_rec *r, int flush)
 typedef struct handler_0_arg {
     request_rec *r;
     char *handler;
+    error_log_data *err;
     ID mid;
 } handler_0_arg_t;
 
@@ -1191,13 +1204,19 @@ static VALUE ruby_handler_0(void *arg)
 {
     handler_0_arg_t *ha = (handler_0_arg_t *) arg;
     request_rec *r = ha->r;
+    error_log_data *err = ha->err;
     char *handler = ha->handler;
     ID mid = ha->mid;
     VALUE ret;
     int state;
 
-    ret = rb_protect_funcall(rb_eval_string(handler), mid, &state,
-			     1, rb_request);
+    if (err) {
+        ret = rb_protect_funcall(rb_eval_string(handler), mid, &state,
+		                 2, rb_request, rb_apache_error_new(r, err));
+    } else {
+        ret = rb_protect_funcall(rb_eval_string(handler), mid, &state,
+			         1, rb_request);
+    }
     if (state) {
 	if (state == TAG_RAISE &&
 	    rb_obj_is_kind_of(ruby_errinfo, rb_eSystemExit)) {
@@ -1222,6 +1241,7 @@ static VALUE ruby_handler_0(void *arg)
 typedef struct handler_internal_arg {
     request_rec *r;
     array_header *handlers_arr;
+    error_log_data *err;
     ID mid;
     int run_all;
     int flush;
@@ -1232,6 +1252,7 @@ static void *ruby_handler_internal(handler_internal_arg_t *iarg)
 {
     request_rec *r = iarg->r;
     array_header *handlers_arr = iarg->handlers_arr;
+    error_log_data *err = iarg->err;
     ID mid = iarg->mid;
     int run_all = iarg->run_all;
     int flush = iarg->flush;
@@ -1259,6 +1280,7 @@ static void *ruby_handler_internal(handler_internal_arg_t *iarg)
     for (i = 0; i < handlers_len; i++) {
 	arg.r = r;
 	arg.handler = handlers[i];
+	arg.err = err;
 	arg.mid = mid;
 	ap_soft_timeout("call ruby handler", r);
 	timeout = sconf->timeout;
@@ -1289,8 +1311,9 @@ static void *ruby_handler_internal(handler_internal_arg_t *iarg)
 }
 
 static int ruby_handler(request_rec *r,
-			array_header *handlers_arr, ID mid,
-			int run_all, int flush)
+			array_header *handlers_arr,
+			error_log_data *error,
+			ID mid, int run_all, int flush)
 {
     handler_internal_arg_t *arg;
 
@@ -1300,6 +1323,7 @@ static int ruby_handler(request_rec *r,
     arg = apr_palloc(r->pool, sizeof(handler_internal_arg_t));
     arg->r = r;
     arg->handlers_arr = handlers_arr;
+    arg->err = error;
     arg->mid = mid;
     arg->run_all = run_all;
     arg->flush = flush;
@@ -1340,7 +1364,7 @@ static int ruby_object_handler(request_rec *r)
     }
 #endif
     dconf = get_dir_config(r);
-    retval = ruby_handler(r, dconf->ruby_handler, rb_intern("handler"), 0, 1);
+    retval = ruby_handler(r, dconf->ruby_handler, NULL, rb_intern("handler"), 0, 1);
 #ifdef APACHE2
     if (retval == DECLINED && r->finfo.filetype == APR_DIR)
         r->handler = DIR_MAGIC_TYPE;
@@ -1352,7 +1376,7 @@ static int ruby_trans_handler(request_rec *r)
 {
     ruby_dir_config *dconf = get_dir_config(r);
 
-    return ruby_handler(r, dconf->ruby_trans_handler,
+    return ruby_handler(r, dconf->ruby_trans_handler, NULL,
 			rb_intern("translate_uri"), 0, 0);
 }
 
@@ -1362,7 +1386,7 @@ static int ruby_authen_handler(request_rec *r)
     int retval;
 
     if (dconf->ruby_authen_handler == NULL) return DECLINED;
-    retval = ruby_handler(r, dconf->ruby_authen_handler,
+    retval = ruby_handler(r, dconf->ruby_authen_handler, NULL,
 			  rb_intern("authenticate"), 0, 0);
     return retval;
 }
@@ -1371,7 +1395,7 @@ static int ruby_authz_handler(request_rec *r)
 {
     ruby_dir_config *dconf = get_dir_config(r);
 
-    return ruby_handler(r, dconf->ruby_authz_handler,
+    return ruby_handler(r, dconf->ruby_authz_handler, NULL,
 			rb_intern("authorize"), 0, 0);
 }
 
@@ -1379,7 +1403,7 @@ static int ruby_access_handler(request_rec *r)
 {
     ruby_dir_config *dconf = get_dir_config(r);
 
-    return ruby_handler(r, dconf->ruby_access_handler,
+    return ruby_handler(r, dconf->ruby_access_handler, NULL,
 			rb_intern("check_access"), 1, 0);
 }
 
@@ -1388,7 +1412,7 @@ static int ruby_type_handler(request_rec *r)
     ruby_dir_config *dconf = get_dir_config(r);
 
     if (dconf->ruby_type_handler == NULL) return DECLINED;
-    return ruby_handler(r, dconf->ruby_type_handler,
+    return ruby_handler(r, dconf->ruby_type_handler, NULL,
 			rb_intern("find_types"), 0, 0);
 }
 
@@ -1397,7 +1421,7 @@ static int ruby_fixup_handler(request_rec *r)
     ruby_dir_config *dconf = get_dir_config(r);
 
     if (dconf->ruby_fixup_handler == NULL) return DECLINED;
-    return ruby_handler(r, dconf->ruby_fixup_handler,
+    return ruby_handler(r, dconf->ruby_fixup_handler, NULL,
 			rb_intern("fixup"), 1, 0);
 }
 
@@ -1406,7 +1430,7 @@ static int ruby_log_handler(request_rec *r)
     ruby_dir_config *dconf = get_dir_config(r);
 
     if (dconf->ruby_log_handler == NULL) return DECLINED;
-    return ruby_handler(r, dconf->ruby_log_handler,
+    return ruby_handler(r, dconf->ruby_log_handler, NULL,
 			rb_intern("log_transaction"), 1, 0);
 }
 
@@ -1418,13 +1442,13 @@ static int ruby_header_parser_handler(request_rec *r)
 
     if (dconf->ruby_init_handler &&
 	ap_table_get(r->notes, "ruby_init_ran") == NULL) {
-	retval = ruby_handler(r, dconf->ruby_init_handler,
+	retval = ruby_handler(r, dconf->ruby_init_handler, NULL,
 			      rb_intern("init"), 1, 0);
 	if (retval != OK && retval != DECLINED)
 	    return retval;
     }
     if (dconf->ruby_header_parser_handler == NULL) return DECLINED;
-    return ruby_handler(r, dconf->ruby_header_parser_handler,
+    return ruby_handler(r, dconf->ruby_header_parser_handler, NULL,
 			rb_intern("header_parse"), 1, 0);
 }
 #endif
@@ -1434,7 +1458,7 @@ static APR_CLEANUP_RETURN_TYPE ruby_cleanup_handler(void *data)
     request_rec *r = (request_rec *) data;
     ruby_dir_config *dconf = get_dir_config(r);
 
-    ruby_handler(r, dconf->ruby_cleanup_handler,
+    ruby_handler(r, dconf->ruby_cleanup_handler, NULL,
 		 rb_intern("cleanup"), 1, 0);
     APR_CLEANUP_RETURN_SUCCESS();
 }
@@ -1448,15 +1472,42 @@ static int ruby_post_read_request_handler(request_rec *r)
 			apr_pool_cleanup_null);
 
     if (dconf->ruby_init_handler) {
-	retval = ruby_handler(r, dconf->ruby_init_handler,
+	retval = ruby_handler(r, dconf->ruby_init_handler, NULL,
 			      rb_intern("init"), 1, 0);
 	apr_table_set(r->notes, "ruby_init_ran", "true");
 	if (retval != OK && retval != DECLINED)
 	    return retval;
     }
-    return ruby_handler(r, dconf->ruby_post_read_request_handler,
+    return ruby_handler(r, dconf->ruby_post_read_request_handler, NULL,
 			rb_intern("post_read_request"), 1, 0);
 }
+
+#ifdef APACHE2
+static void ruby_error_log_handler(const char *file, int line, int level, apr_status_t status, const server_rec *s, const request_rec *r, apr_pool_t *pool, const char *error) {
+    ruby_dir_config *dconf;
+    error_log_data *e;
+ 
+    /* only interested in errors produced as the result of requests.
+     * 
+     * [this handler is called multiple times during startup but since this is
+     * prior to config stage, we'll ignore them] */
+    if (r == NULL) return;
+
+    dconf = get_dir_config(r);
+    if (dconf->ruby_error_log_handler == NULL) return;
+    
+    e = apr_palloc(r->pool, sizeof(error_log_data));
+    e->file = file;
+    e->line = line;
+    e->level = level;
+    e->status = status;
+    e->error = error;
+
+    ruby_handler((request_rec *) r, dconf->ruby_error_log_handler, e,
+                 rb_intern("log_error"), 1, 0);
+    return;
+}
+#endif
 
 /*
  * Local variables:

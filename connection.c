@@ -36,6 +36,13 @@ VALUE rb_apache_connection_new(conn_rec *conn)
 }
 
 DEFINE_BOOL_ATTR_READER(connection_aborted, conn_rec, aborted);
+/* in APACHE1: -1 fatal error, 0 undecided, 1 yes 
+ *    APACHE2: 0 AP_CONN_UNKNOWN, 1 AP_CONN_CLOSE, 2 AP_CONN_KEEPALIVE
+ * fun... */
+DEFINE_INT_ATTR_READER(connection_keepalive, conn_rec, keepalive);
+/* -1 yes/failure, 0 not yet, 1 yes/success */
+DEFINE_INT_ATTR_READER(connection_double_reverse, conn_rec, double_reverse);
+DEFINE_INT_ATTR_READER(connection_keepalives, conn_rec, keepalives);
 DEFINE_STRING_ATTR_READER(connection_remote_ip, conn_rec, remote_ip);
 DEFINE_STRING_ATTR_READER(connection_remote_host, conn_rec, remote_host);
 DEFINE_STRING_ATTR_READER(connection_remote_logname, conn_rec, remote_logname);
@@ -124,12 +131,39 @@ static VALUE connection_remote_port(VALUE self)
 #endif
 }
 
+#ifdef APACHE2
+static VALUE connection_notes(VALUE self)
+{
+    conn_rec *conn;
+
+    Data_Get_Struct(self, conn_rec, conn);
+    if (conn->notes) {
+        return rb_apache_table_new(conn->notes);
+    }
+    else {
+        return Qnil;
+    }
+}
+#else
+static VALUE connection_notes(VALUE self)
+{
+    rb_notimplement();
+    return Qnil;
+}
+#endif
+
 void rb_init_apache_connection()
 {
     rb_cApacheConnection = rb_define_class_under(rb_mApache, "Connection", rb_cObject);
     rb_undef_method(CLASS_OF(rb_cApacheConnection), "new");
     rb_define_method(rb_cApacheConnection, "aborted?",
                      connection_aborted, 0);
+    rb_define_method(rb_cApacheConnection, "keepalive",
+                     connection_keepalive, 0);
+    rb_define_method(rb_cApacheConnection, "double_reverse",
+                     connection_double_reverse, 0);
+    rb_define_method(rb_cApacheConnection, "keepalives",
+                     connection_keepalives, 0);
     rb_define_method(rb_cApacheConnection, "remote_ip",
 		     connection_remote_ip, 0);
     rb_define_method(rb_cApacheConnection, "remote_host",
@@ -150,6 +184,8 @@ void rb_init_apache_connection()
 		     connection_local_host, 0);
     rb_define_method(rb_cApacheConnection, "local_port",
                      connection_local_port, 0);
+    rb_define_method(rb_cApacheConnection, "notes",
+                     connection_notes, 0);
 }
 
 /* vim: set filetype=c ts=8 sw=4 : */

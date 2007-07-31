@@ -83,6 +83,7 @@
 #include "apr_tables.h"
 
 #define ap_pool apr_pool_t
+#define uri_components apr_uri_t
 
 typedef apr_pool_t pool;
 typedef apr_array_header_t array_header;
@@ -193,6 +194,7 @@ typedef struct {
     array_header *ruby_type_handler;
     array_header *ruby_fixup_handler;
     array_header *ruby_log_handler;
+    array_header *ruby_error_log_handler;
     array_header *ruby_header_parser_handler;
     array_header *ruby_post_read_request_handler;
     array_header *ruby_init_handler;
@@ -210,6 +212,18 @@ typedef struct {
     VALUE request_object;
 } ruby_request_config;
 
+typedef struct {
+    const char *file;
+    int line;
+    int level;
+#ifdef APACHE2
+    apr_status_t status;
+#else
+    int status;
+#endif
+    const char *error;
+} error_log_data;
+        
 #define MR_DEFAULT_TIMEOUT 0
 #define MR_DEFAULT_SAFE_LEVEL 1
 #define MR_DEFAULT_RESTRICT_DIRECTIVES 0

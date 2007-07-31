@@ -98,6 +98,8 @@ OBJS		= mod_ruby.@OBJEXT@ \
 		  paramtable.@OBJEXT@ \
 		  multival.@OBJEXT@ \
 		  bucket.@OBJEXT@ \
+		  uri.@OBJEXT@ \
+		  error.@OBJEXT@ \
 		  apache_request.@OBJEXT@ \
 		  apache_multipart_buffer.@OBJEXT@ \
 		  apache_cookie.@OBJEXT@
@@ -183,6 +185,8 @@ cookie.@OBJEXT@: cookie.c mod_ruby.h apachelib.h
 paramtable.@OBJEXT@: paramtable.c mod_ruby.h apachelib.h
 multival.@OBJEXT@: multival.c mod_ruby.h apachelib.h
 bucket.@OBJEXT@: bucket.c mod_ruby.h apachelib.h
+uri.@OBJEXT@: uri.c mod_ruby.h apachelib.h
+error.@OBJEXT@: error.c mod_ruby.h apachelib.h
 
 apache_request.@OBJEXT@: apache_request.c mod_ruby.h apache_request.h
 apache_multipart_buffer.@OBJEXT@: apache_multipart_buffer.c mod_ruby.h apache_request.h apache_multipart_buffer.h

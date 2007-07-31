@@ -53,6 +53,9 @@ const char *ruby_cmd_access_handler(cmd_parms*, void*, const char*);
 const char *ruby_cmd_type_handler(cmd_parms*, void*, const char*);
 const char *ruby_cmd_fixup_handler(cmd_parms*, void*, const char*);
 const char *ruby_cmd_log_handler(cmd_parms*, void*, const char*);
+#ifdef APACHE2
+const char *ruby_cmd_error_log_handler(cmd_parms*, void*, const char*);
+#endif
 const char *ruby_cmd_header_parser_handler(cmd_parms*, void*, const char*);
 const char *ruby_cmd_post_read_request_handler(cmd_parms*, void*, const char*);
 const char *ruby_cmd_init_handler(cmd_parms*, void*, const char*);

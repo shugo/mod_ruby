@@ -80,6 +80,16 @@ extern VALUE rb_cApacheBucket;
 void rb_init_apache_bucket();
 #endif
 
+/* uri.c */
+extern VALUE rb_cApacheUri;
+void rb_init_apache_uri();
+VALUE rb_apache_uri_new(uri_components *uri);
+
+/* error.c */
+extern VALUE rb_cApacheError;
+void rb_init_apache_error();
+VALUE rb_apache_error_new(request_rec *r, error_log_data *error);
+
 /* --- Libapreq Extensions ------------------------------  */
 
 extern VALUE rb_eApacheRequestError;

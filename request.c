@@ -56,6 +56,7 @@ typedef struct request_data {
     VALUE subprocess_env;
     VALUE notes;
     VALUE finfo;
+    VALUE parsed_uri;
     VALUE attributes;
     VALUE error_message;
     VALUE exception;
@@ -106,6 +107,10 @@ static VALUE fname(VALUE self, VALUE val) \
 	DEFINE_INT_ATTR_READER(fname, request_data, request->member)
 #define REQUEST_INT_ATTR_WRITER(fname, member) \
 	DEFINE_INT_ATTR_WRITER(fname, request_data, request->member)
+#define REQUEST_BOOL_ATTR_READER(fname, member) \
+	DEFINE_BOOL_ATTR_READER(fname, request_data, request->member)
+#define REQUEST_BOOL_ATTR_WRITER(fname, member) \
+	DEFINE_BOOL_ATTR_WRITER(fname, request_data, request->member)
 
 static void request_mark(request_data *data)
 {
@@ -119,6 +124,7 @@ static void request_mark(request_data *data)
     rb_gc_mark(data->subprocess_env);
     rb_gc_mark(data->notes);
     rb_gc_mark(data->finfo);
+    rb_gc_mark(data->parsed_uri);
     rb_gc_mark(data->attributes);
     rb_gc_mark(data->error_message);
     rb_gc_mark(data->exception);
@@ -182,6 +188,7 @@ static VALUE apache_request_new(request_rec *r)
     data->subprocess_env = Qnil;
     data->notes = Qnil;
     data->finfo = Qnil;
+    data->parsed_uri = Qnil;
     data->attributes = Qnil;
     data->error_message = Qnil;
     data->exception = Qnil;
@@ -605,6 +612,8 @@ REQUEST_INT_ATTR_WRITER(request_set_status, status);
 REQUEST_STRING_ATTR_READER(request_get_status_line, status_line);
 REQUEST_STRING_ATTR_WRITER(request_set_status_line, status_line);
 REQUEST_STRING_ATTR_READER(request_the_request, the_request);
+REQUEST_BOOL_ATTR_READER(request_get_assbackwards, assbackwards);
+REQUEST_BOOL_ATTR_WRITER(request_set_assbackwards, assbackwards);
 REQUEST_STRING_ATTR_READER(request_request_method, method);
 REQUEST_INT_ATTR_READER(request_method_number, method_number);
 REQUEST_INT_ATTR_READER(request_get_allowed, allowed);
@@ -876,6 +885,17 @@ static VALUE request_finfo(VALUE self)
     return data->finfo;
 }
 
+static VALUE request_parsed_uri(VALUE self)
+{
+    request_data *data;
+    
+    data = get_request_data(self);
+    if (NIL_P(data->parsed_uri)) {
+      data->parsed_uri = rb_apache_uri_new(&data->request->parsed_uri);
+    }
+    return data->parsed_uri;
+}
+
 static VALUE request_attributes(VALUE self)
 {
     request_data *data;
@@ -1047,6 +1067,14 @@ static VALUE request_default_type(VALUE self)
     data = get_request_data(self);
     type = ap_default_type(data->request);
     return type ? rb_tainted_str_new2(type) : Qnil;
+}
+
+static VALUE request_default_port(VALUE self)
+{
+    request_data *data;
+
+    data = get_request_data(self);
+    return INT2NUM(ap_default_port(data->request));
 }
 
 static VALUE request_remote_host(int argc, VALUE *argv, VALUE self)
@@ -2135,6 +2163,8 @@ void rb_init_apache_request()
     rb_define_method(rb_cApacheRequest, "allowed=", request_set_allowed, 1);
     rb_define_method(rb_cApacheRequest, "the_request",
 		     request_the_request, 0);
+    rb_define_method(rb_cApacheRequest, "assbackwards?", request_get_assbackwards, 0);
+    rb_define_method(rb_cApacheRequest, "assbackwards=", request_set_assbackwards, 1);
     rb_define_method(rb_cApacheRequest, "header_only?", request_header_only, 0);
     rb_define_method(rb_cApacheRequest, "args", request_get_args, 0);
     rb_define_method(rb_cApacheRequest, "args=", request_set_args, 1);
@@ -2160,6 +2190,7 @@ void rb_init_apache_request()
 		     request_subprocess_env, 0);
     rb_define_method(rb_cApacheRequest, "notes", request_notes, 0);
     rb_define_method(rb_cApacheRequest, "finfo", request_finfo, 0);
+    rb_define_method(rb_cApacheRequest, "parsed_uri", request_parsed_uri, 0);
     rb_define_method(rb_cApacheRequest, "attributes", request_attributes, 0);
     rb_define_method(rb_cApacheRequest, "setup_client_block",
 		     request_setup_client_block, -1);
@@ -2180,6 +2211,7 @@ void rb_init_apache_request()
 		     request_allow_overrides, 0);
     rb_define_method(rb_cApacheRequest, "default_type",
 		     request_default_type, 0);
+    rb_define_method(rb_cApacheRequest, "default_port", request_default_port, 0);
     rb_define_method(rb_cApacheRequest, "remote_host",
 		     request_remote_host, -1);
     rb_define_method(rb_cApacheRequest, "remote_logname",

@@ -389,6 +389,32 @@ void rb_init_apache()
     rb_define_const(rb_mApache, "REMOTE_DOUBLE_REV",
 		    INT2NUM(REMOTE_DOUBLE_REV));
 
+#ifdef APACHE2
+    rb_define_const(rb_mApache, "AP_CONN_UNKNOWN",
+		    INT2NUM(AP_CONN_UNKNOWN));
+    rb_define_const(rb_mApache, "AP_CONN_CLOSE",
+		    INT2NUM(AP_CONN_CLOSE));
+    rb_define_const(rb_mApache, "AP_CONN_KEEPALIVE",
+		    INT2NUM(AP_CONN_KEEPALIVE));
+#endif
+
+    rb_define_const(rb_mApache, "APLOG_EMERG",
+		    INT2NUM(APLOG_EMERG));
+    rb_define_const(rb_mApache, "APLOG_ALERT",
+		    INT2NUM(APLOG_ALERT));
+    rb_define_const(rb_mApache, "APLOG_CRIT",
+		    INT2NUM(APLOG_CRIT));
+    rb_define_const(rb_mApache, "APLOG_ERR",
+		    INT2NUM(APLOG_ERR));
+    rb_define_const(rb_mApache, "APLOG_WARNING",
+		    INT2NUM(APLOG_WARNING));
+    rb_define_const(rb_mApache, "APLOG_NOTICE",
+		    INT2NUM(APLOG_NOTICE));
+    rb_define_const(rb_mApache, "APLOG_INFO",
+		    INT2NUM(APLOG_INFO));
+    rb_define_const(rb_mApache, "APLOG_DEBUG",
+		    INT2NUM(APLOG_DEBUG));
+
     /* Policy constants for setup_client_block() */
     rb_define_const(rb_mApache, "REQUEST_NO_BODY",
 		    INT2NUM(REQUEST_NO_BODY));
@@ -425,6 +451,8 @@ void rb_init_apache()
 #ifdef APACHE2
     rb_init_apache_bucket();
 #endif
+    rb_init_apache_uri();
+    rb_init_apache_error();
 }
 
 /*

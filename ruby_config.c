@@ -109,6 +109,9 @@ void *ruby_create_dir_config(pool *p, char *dirname)
     conf->ruby_type_handler = NULL;
     conf->ruby_fixup_handler = NULL;
     conf->ruby_log_handler = NULL;
+#ifdef APACHE2
+    conf->ruby_error_log_handler = NULL;
+#endif
     conf->ruby_header_parser_handler = NULL;
     conf->ruby_post_read_request_handler = NULL;
     conf->ruby_init_handler = NULL;
@@ -164,7 +167,11 @@ void *ruby_merge_dir_config(pool *p, void *basev, void *addv)
 	merge_handlers(p, base->ruby_fixup_handler, add->ruby_fixup_handler);
     new->ruby_log_handler =
 	merge_handlers(p, base->ruby_log_handler, add->ruby_log_handler);
-    new->ruby_header_parser_handler =
+#ifdef APACHE2
+    new->ruby_error_log_handler =
+	merge_handlers(p, base->ruby_error_log_handler, add->ruby_error_log_handler);
+#endif
+     new->ruby_header_parser_handler =
 	merge_handlers(p, base->ruby_header_parser_handler,
 		       add->ruby_header_parser_handler);
     new->ruby_post_read_request_handler =
@@ -471,6 +478,15 @@ const char *ruby_cmd_log_handler(cmd_parms *cmd, void *conf, const char *arg)
     push_handler(cmd->pool, ((ruby_dir_config *) conf)->ruby_log_handler, arg);
     return NULL;
 }
+
+#ifdef APACHE2
+const char *ruby_cmd_error_log_handler(cmd_parms *cmd, void *conf, const char *arg)
+{
+    check_restrict_directives(cmd, conf)
+    push_handler(cmd->pool, ((ruby_dir_config *) conf)->ruby_error_log_handler, arg);
+    return NULL;
+}
+#endif
 
 const char *ruby_cmd_header_parser_handler(cmd_parms *cmd,
 					   void *conf, const char *arg)
