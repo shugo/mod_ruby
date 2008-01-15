@@ -81,7 +81,6 @@ extern char **environ;
 #define FREE_ENVIRON(e)
 #endif
 
-RUBY_EXTERN VALUE ruby_errinfo;
 RUBY_EXTERN VALUE rb_stdin;
 RUBY_EXTERN VALUE rb_stdout;
 RUBY_EXTERN VALUE rb_stderr;
@@ -349,13 +348,13 @@ static void get_error_pos(VALUE str)
     char buff[BUFSIZ];
     ID this_func = rb_frame_this_func();
 
-    if (ruby_sourcefile) {
+    if (rb_sourcefile()) {
 	if (this_func) {
-	    snprintf(buff, BUFSIZ, "%s:%d:in `%s'", ruby_sourcefile, ruby_sourceline,
+	    snprintf(buff, BUFSIZ, "%s:%d:in `%s'", rb_sourcefile(), rb_sourceline(),
 		     rb_id2name(this_func));
 	}
 	else {
-	    snprintf(buff, BUFSIZ, "%s:%d", ruby_sourcefile, ruby_sourceline);
+	    snprintf(buff, BUFSIZ, "%s:%d", rb_sourcefile(), rb_sourceline());
 	}
 	rb_str_cat(str, buff, strlen(buff));
     }
@@ -370,9 +369,9 @@ static void get_exception_info(VALUE str)
     int elen;
     int state;
 
-    if (NIL_P(ruby_errinfo)) return;
+    if (NIL_P(rb_errinfo())) return;
 
-    errat = rb_funcall(ruby_errinfo, rb_intern("backtrace"), 0);
+    errat = rb_funcall(rb_errinfo(), rb_intern("backtrace"), 0);
     if (!NIL_P(errat)) {
 	VALUE mesg = RARRAY(errat)->ptr[0];
 
@@ -380,19 +379,19 @@ static void get_exception_info(VALUE str)
 	    get_error_pos(str);
 	}
 	else {
-	    rb_str_cat(str, RSTRING(mesg)->ptr, RSTRING(mesg)->len);
+	    rb_str_cat(str, RSTRING_PTR(mesg), RSTRING_LEN(mesg));
 	}
     }
 
-    eclass = CLASS_OF(ruby_errinfo);
-    estr = rb_protect(rb_obj_as_string, ruby_errinfo, &state);
+    eclass = CLASS_OF(rb_errinfo());
+    estr = rb_protect(rb_obj_as_string, rb_errinfo(), &state);
     if (state) {
 	einfo = "";
 	elen = 0;
     }
     else {
-	einfo = RSTRING(estr)->ptr;
-	elen = RSTRING(estr)->len;
+	einfo = RSTRING_PTR(estr);
+	elen = RSTRING_LEN(estr);
     }
     if (eclass == rb_eRuntimeError && elen == 0) {
 	STR_CAT_LITERAL(str, ": unhandled exception\n");
@@ -403,14 +402,14 @@ static void get_exception_info(VALUE str)
 	epath = rb_class_path(eclass);
 	if (elen == 0) {
 	    STR_CAT_LITERAL(str, ": ");
-	    rb_str_cat(str, RSTRING(epath)->ptr, RSTRING(epath)->len);
+	    rb_str_cat(str, RSTRING_PTR(epath), RSTRING_LEN(epath));
 	    STR_CAT_LITERAL(str, "\n");
 	}
 	else {
 	    char *tail  = 0;
 	    int len = elen;
 
-	    if (RSTRING(epath)->ptr[0] == '#') epath = 0;
+	    if (RSTRING_PTR(epath)[0] == '#') epath = 0;
 	    if ((tail = strchr(einfo, '\n')) != NULL) {
 		len = tail - einfo;
 		tail++;		/* skip newline */
@@ -419,7 +418,7 @@ static void get_exception_info(VALUE str)
 	    rb_str_cat(str, einfo, len);
 	    if (epath) {
 		STR_CAT_LITERAL(str, " (");
-		rb_str_cat(str, RSTRING(epath)->ptr, RSTRING(epath)->len);
+		rb_str_cat(str, RSTRING_PTR(epath), RSTRING_LEN(epath));
 		STR_CAT_LITERAL(str, ")\n");
 	    }
 	    if (tail) {
@@ -442,7 +441,7 @@ static void get_exception_info(VALUE str)
 	for (i=1; i<len; i++) {
 	    if (TYPE(ep->ptr[i]) == T_STRING) {
 		STR_CAT_LITERAL(str, "  from ");
-		rb_str_cat(str, RSTRING(ep->ptr[i])->ptr, RSTRING(ep->ptr[i])->len);
+		rb_str_cat(str, RSTRING_PTR(ep->ptr[i]), RSTRING_LEN(ep->ptr[i]));
 		STR_CAT_LITERAL(str, "\n");
 	    }
 	    if (i == TRACE_HEAD && len > TRACE_MAX) {
@@ -454,7 +453,7 @@ static void get_exception_info(VALUE str)
 	    }
 	}
     }
-    /* ruby_errinfo = Qnil; */
+    /* rb_errinfo() = Qnil; */
 }
 
 VALUE ruby_get_error_info(int state)
@@ -536,7 +535,7 @@ static void handle_error(request_rec *r, int state)
 	rconf = get_request_config(r);
 	if (rconf && !NIL_P(rconf->request_object))
 	    rb_apache_request_set_error(rconf->request_object,
-					errmsg, ruby_errinfo);
+					errmsg, rb_errinfo());
     }
     ruby_log_error_string(r->server, errmsg);
 }
@@ -583,8 +582,8 @@ static int ruby_require_directly(const char *filename,
     fname = rb_str_new2(filename);
     rb_protect_funcall(Qnil, rb_intern("require"), &state, 1, fname);
     if (state == TAG_RAISE &&
-	rb_obj_is_kind_of(ruby_errinfo, rb_eSystemExit)) {
-	exit_status = rb_iv_get(ruby_errinfo, "status");
+	rb_obj_is_kind_of(rb_errinfo(), rb_eSystemExit)) {
+	exit_status = rb_iv_get(rb_errinfo(), "status");
 	exit(NUM2INT(exit_status));
     }
     return state;
@@ -1063,9 +1062,9 @@ static int run_safely(int safe_level, int timeout,
     rsarg.func = func;
     rsarg.arg = arg;
 #if defined(HAVE_SETITIMER)
-    rb_thread_start_timer();
+    rb_thread_start_timer_thread();
 #endif
-    if (safe_level > ruby_safe_level) {
+    if (safe_level > rb_safe_level()) {
 	thread = rb_thread_create(run_safely_0, &rsarg);
 	ret = rb_protect_funcall(thread, rb_intern("value"), &state, 0);
     }
@@ -1074,7 +1073,7 @@ static int run_safely(int safe_level, int timeout,
     }
     rb_protect(kill_threads, Qnil, NULL);
 #if defined(HAVE_SETITIMER)
-    rb_thread_stop_timer();
+    rb_thread_stop_timer_thread();
 #endif
     if (retval)
 	*retval = ret;
@@ -1219,8 +1218,8 @@ static VALUE ruby_handler_0(void *arg)
     }
     if (state) {
 	if (state == TAG_RAISE &&
-	    rb_obj_is_kind_of(ruby_errinfo, rb_eSystemExit)) {
-	    ret = rb_iv_get(ruby_errinfo, "status");
+	    rb_obj_is_kind_of(rb_errinfo(), rb_eSystemExit)) {
+	    ret = rb_iv_get(rb_errinfo(), "status");
 	}
 	else {
 	    handle_error(r, state);

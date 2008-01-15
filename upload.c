@@ -99,12 +99,12 @@ static VALUE upload_filename( self )
 
 
 #if RUBY_VERSION_CODE >= 180
-static void upload_io_finalize(OpenFile *fptr, int noraise)
+static void upload_io_finalize(rb_io_t *fptr, int noraise)
 #else
-static void upload_io_finalize(OpenFile *fptr)
+static void upload_io_finalize(rb_io_t *fptr)
 #endif
 {
-#if RUBY_VERSION_CODE >= 190
+#ifdef RUBY_VM
     fptr->fd = 0;
 #else
     fptr->f = NULL;
@@ -114,7 +114,7 @@ static void upload_io_finalize(OpenFile *fptr)
 
 static VALUE io_new(FILE *fp)
 {
-    OpenFile *fptr;
+    rb_io_t *fptr;
 
     NEWOBJ(io, struct RFile);
     OBJSETUP(io, rb_cIO, T_FILE);

@@ -267,8 +267,8 @@ static void *ruby_require_internal(require_internal_arg_t *arg)
     fname = rb_str_new2(filename);
     rb_protect_funcall(Qnil, rb_intern("require"), &state, 1, fname);
     if (state == TAG_RAISE &&
-	rb_obj_is_kind_of(ruby_errinfo, rb_eSystemExit)) {
-	exit_status = rb_iv_get(ruby_errinfo, "status");
+	rb_obj_is_kind_of(rb_errinfo(), rb_eSystemExit)) {
+	exit_status = rb_iv_get(rb_errinfo(), "status");
 	exit(NUM2INT(exit_status));
     }
     if (state) {

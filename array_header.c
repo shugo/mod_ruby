@@ -80,8 +80,8 @@ static VALUE array_aset(VALUE self, VALUE idx, VALUE val)
 	rb_raise(rb_eIndexError, "index %d out of array", n);
     }
     ((char **) arr->elts)[n] = apr_pstrndup(arr->pool,
-					   RSTRING(val)->ptr,
-					   RSTRING(val)->len);
+					   RSTRING_PTR(val),
+					   RSTRING_LEN(val));
     return val;
 }
 

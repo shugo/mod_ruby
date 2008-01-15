@@ -131,9 +131,9 @@ static VALUE apache_unescape_url(VALUE self, VALUE url)
     char *buf;
 
     Check_Type(url, T_STRING);
-    buf = ALLOCA_N(char, RSTRING(url)->len + 1);
-    memcpy(buf, RSTRING(url)->ptr, RSTRING(url)->len);
-    buf[RSTRING(url)->len] = '\0';
+    buf = ALLOCA_N(char, RSTRING_LEN(url) + 1);
+    memcpy(buf, RSTRING_PTR(url), RSTRING_LEN(url));
+    buf[RSTRING_LEN(url)] = '\0';
     ap_unescape_url(buf);
     return rb_str_new2(buf);
 }

@@ -186,8 +186,8 @@ static VALUE cookie_value_eq( VALUE self, VALUE newval )
     ApacheCookieItems(cookie) = 0;
     for ( i = 0; i < RARRAY(items)->len; i++ ) {
         ApacheCookieAddLen( cookie,
-                            RSTRING(*(RARRAY(items)->ptr + i))->ptr,
-                            RSTRING(*(RARRAY(items)->ptr + i))->len );
+                            RSTRING_PTR(*(RARRAY(items)->ptr + i)),
+                            RSTRING_LEN(*(RARRAY(items)->ptr + i)) );
     }
 
     return items;
@@ -329,7 +329,7 @@ static VALUE cookie_set_attr( VALUE pair, VALUE self )
     Check_Type( pair, T_ARRAY );
     if ( !RARRAY(pair)->len == 2 )
         rb_raise( rb_eArgError, "Expected an array of 2 elements, not %d",
-                  RARRAY(pair)->len );
+                  (int) RARRAY(pair)->len );
 
     /* Pick the attr name (converted to an ID) and value out of the iterator
        pair. */
@@ -356,8 +356,9 @@ static VALUE cookie_set_attr( VALUE pair, VALUE self )
         cookie_secure_eq( self, val );
     }
     else {
+	VALUE s = rb_inspect(*( RARRAY(pair)->ptr ));
         rb_raise( rb_eArgError, "Unknown attribute %s",
-                  rb_inspect(*( RARRAY(pair)->ptr )) );
+                  StringValuePtr(s) );
     }
 
     return val;

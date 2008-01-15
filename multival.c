@@ -269,11 +269,14 @@ void rb_init_apache_multival()
     rb_ary_delete( dmethods, rb_str_new2("each") );
     rb_ary_delete( dmethods, rb_str_new2("[]") );
     rb_ary_delete( dmethods, rb_str_new2("[]=") );
+    /* TODO: avoid SEGV */
+#if 0
     rb_iterate( rb_each, dmethods, multival_make_delegator, stringish );
 
     /* Now set up array-ish delegation */	
     dmethods = rb_class_instance_methods( 1, args, rb_cArray );
     rb_iterate( rb_each, dmethods, multival_make_delegator, arrayish );
+#endif
 	
     /* include Comparable */
     rb_include_module( rb_cApacheMultiVal, rb_mComparable );

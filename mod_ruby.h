@@ -32,11 +32,44 @@
 
 #include "ruby.h"
 #include "rubyio.h"
+
+#ifdef RUBY_VM
+
+#if 0
+#include "ruby/version.h"
+#endif
+#define RUBY_VERSION_CODE 190
+#include "ruby/util.h"
+#include "ruby/intern.h"
+
+void rb_thread_stop_timer_thread(void);
+void rb_thread_start_timer_thread(void);
+
+#define rb_get_kcode() NULL
+#define rb_set_kcode(code)
+
+#else
+
 #include "version.h"
 #include "util.h"
 #include "intern.h"
 
-#if RUBY_VERSION_CODE < 190 || RUBY_RELEASE_CODE <= 20050304
+#ifndef RSTRING_PTR
+#define RSTRING_PTR(s) RSTRING(s)->ptr
+#endif
+#ifndef RSTRING_LEN
+#define RSTRING_LEN(s) RSTRING(s)->len
+#endif
+#define rb_errinfo() ruby_errinfo
+#define rb_sourcefile() ruby_sourcefile
+#define rb_sourceline() ruby_sourceline
+#define rb_thread_start_timer_thread() rb_thread_start_timer()
+#define rb_thread_stop_timer_thread() rb_thread_stop_timer()
+typedef OpenFile rb_io_t;
+
+#endif
+
+#if !defined(RUBY_VM)
 #define rb_frame_this_func() rb_frame_last_func()
 #endif
 #ifndef LONG2NUM

@@ -36,7 +36,11 @@
 #include "mod_ruby.h"
 #include "apachelib.h"
 
+#ifdef RUBY_VM
+#include "ruby/st.h"
+#else
 #include "st.h"
+#endif
 
 static VALUE rb_eApachePrematureChunkEndError;
 VALUE rb_cApacheRequest;
@@ -86,7 +90,7 @@ static VALUE fname(VALUE self, VALUE val) \
     data = get_request_data(self); \
     data->request->member = \
 	apr_pstrndup(data->request->pool, \
-		    RSTRING(val)->ptr, RSTRING(val)->len); \
+		    RSTRING_PTR(val), RSTRING_LEN(val)); \
     return val; \
 }
 #else
@@ -98,7 +102,7 @@ static VALUE fname(VALUE self, VALUE val) \
     data = get_request_data(self); \
     data->request->member = \
 	ap_pstrndup(data->request->pool, \
-		    RSTRING(val)->ptr, RSTRING(val)->len); \
+		    RSTRING_PTR(val), RSTRING_LEN(val)); \
     return val; \
 }
 #endif
@@ -268,7 +272,7 @@ long rb_apache_request_length(VALUE self)
     request_data *data;
 
     data = get_request_data(self);
-    return RSTRING(data->outbuf)->len;
+    return RSTRING_LEN(data->outbuf);
 }
 
 static VALUE request_output_buffer(VALUE self)
@@ -292,8 +296,7 @@ static VALUE request_cancel(VALUE self)
     request_data *data;
 
     data = get_request_data(self);
-    RSTRING(data->outbuf)->len = 0;
-    RSTRING(data->outbuf)->ptr[0] = '\0';
+    rb_str_resize(data->outbuf, 0);
     return Qnil;
 }
 
@@ -353,12 +356,12 @@ static VALUE request_write(VALUE self, VALUE str)
 	if (data->request->header_only &&
 	    FL_TEST(self, REQ_SENT_HEADER))
 	    return INT2NUM(0);
-	len = ap_rwrite(RSTRING(str)->ptr, RSTRING(str)->len, data->request);
+	len = ap_rwrite(RSTRING_PTR(str), RSTRING_LEN(str), data->request);
 	ap_rflush(data->request);
     }
     else {
-	rb_str_cat(data->outbuf, RSTRING(str)->ptr, RSTRING(str)->len);
-	len = RSTRING(str)->len;
+	rb_str_cat(data->outbuf, RSTRING_PTR(str), RSTRING_LEN(str));
+	len = RSTRING_LEN(str);
     }
     return INT2NUM(len);
 }
@@ -423,7 +426,7 @@ static VALUE request_printf(int argc, VALUE *argv, VALUE out)
 
 static VALUE request_puts _((int, VALUE*, VALUE));
 
-#if RUBY_VERSION_CODE >= 190 && RUBY_RELEASE_CODE > 20050304
+#ifdef RUBY_VM
 static VALUE request_puts_ary(VALUE ary, VALUE out, int recur)
 #else
 static VALUE request_puts_ary(VALUE ary, VALUE out)
@@ -434,7 +437,7 @@ static VALUE request_puts_ary(VALUE ary, VALUE out)
 
     for (i=0; i<RARRAY(ary)->len; i++) {
 	tmp = RARRAY(ary)->ptr[i];
-#if RUBY_VERSION_CODE >= 190 && RUBY_RELEASE_CODE > 20050304
+#ifdef RUBY_VM
 	if (recur) {
 #else
 	if (rb_inspecting_p(tmp)) {
@@ -462,7 +465,7 @@ static VALUE request_puts(int argc, VALUE *argv, VALUE out)
 	    line = STRING_LITERAL("nil");
 	    break;
 	  case T_ARRAY:
-#if RUBY_VERSION_CODE >= 190 && RUBY_RELEASE_CODE > 20050304
+#ifdef RUBY_VM
 	    rb_exec_recursive(request_puts_ary, argv[i], out);
 #else
 	    rb_protect_inspect(request_puts_ary, argv[i], out);
@@ -474,7 +477,7 @@ static VALUE request_puts(int argc, VALUE *argv, VALUE out)
 	}
 	line = rb_obj_as_string(line);
 	request_write(out, line);
-	if (RSTRING(line)->ptr[RSTRING(line)->len-1] != '\n') {
+	if (RSTRING_PTR(line)[RSTRING_LEN(line)-1] != '\n') {
 	    request_write(out, rb_default_rs);
 	}
     }
@@ -527,14 +530,14 @@ void rb_apache_request_flush(VALUE self)
     }
     if (data->request->header_only &&
 	FL_TEST(self, REQ_SENT_HEADER)) {
-	RSTRING(data->outbuf)->len = 0;
+	rb_str_resize(data->outbuf, 0);
 	return;
     }
-    if (RSTRING(data->outbuf)->len > 0) {
-	ap_rwrite(RSTRING(data->outbuf)->ptr, RSTRING(data->outbuf)->len,
+    if (RSTRING_LEN(data->outbuf) > 0) {
+	ap_rwrite(RSTRING_PTR(data->outbuf), RSTRING_LEN(data->outbuf),
 		  data->request);
 	ap_rflush(data->request);
-	RSTRING(data->outbuf)->len = 0;
+	rb_str_resize(data->outbuf, 0);
     }
 }
 
@@ -664,7 +667,7 @@ static VALUE request_set_content_type(VALUE self, VALUE str)
 	Check_Type(str, T_STRING);
 	data->request->content_type =
 	    apr_pstrndup(data->request->pool,
-			RSTRING(str)->ptr, RSTRING(str)->len);
+			RSTRING_PTR(str), RSTRING_LEN(str));
     }
     return str;
 }
@@ -681,8 +684,8 @@ static VALUE request_set_content_encoding(VALUE self, VALUE str)
 	Check_Type(str, T_STRING);
 	data->request->content_encoding =
 	    apr_pstrndup(data->request->pool,
-			RSTRING(str)->ptr,
-			RSTRING(str)->len);
+			RSTRING_PTR(str),
+			RSTRING_LEN(str));
     }
     return str;
 }
@@ -720,8 +723,8 @@ static VALUE request_set_content_languages(VALUE self, VALUE ary)
 	    VALUE str = RARRAY(ary)->ptr[i];
 	    *(char **) apr_array_push(data->request->content_languages) =
 		apr_pstrndup(data->request->pool,
-			    RSTRING(str)->ptr,
-			    RSTRING(str)->len);
+			    RSTRING_PTR(str),
+			    RSTRING_LEN(str));
 	}
     }
     return ary;
@@ -944,7 +947,7 @@ static VALUE request_get_client_block(VALUE self, VALUE length)
     }
 #else
     result = rb_str_buf_new(len);
-    len = ap_get_client_block(data->request, RSTRING(result)->ptr, len);
+    len = ap_get_client_block(data->request, RSTRING_PTR(result), len);
     switch (len) {
     case -1:
 	rb_raise(rb_eApachePrematureChunkEndError, "premature chunk end");
@@ -952,8 +955,7 @@ static VALUE request_get_client_block(VALUE self, VALUE length)
     case 0:
 	return Qnil;
     default:
-	RSTRING(result)->ptr[len] = '\0';
-	RSTRING(result)->len = len;
+	rb_str_resize(result, len);
 	OBJ_TAINT(result);
 	return result;
     }
@@ -1025,9 +1027,9 @@ static VALUE request_getc(VALUE self)
 
     data = get_request_data(self);
     str = read_client_block(data->request, 1);
-    if (NIL_P(str) || RSTRING(str)->len == 0)
+    if (NIL_P(str) || RSTRING_LEN(str) == 0)
 	return Qnil;
-    return INT2FIX(RSTRING(str)->ptr[0]);
+    return INT2FIX(RSTRING_PTR(str)[0]);
 }
 
 static VALUE request_eof(VALUE self)
@@ -1227,7 +1229,7 @@ static VALUE request_hard_timeout(VALUE self, VALUE name)
 
     Check_Type(name, T_STRING);
     data = get_request_data(self);
-    s = ap_pstrndup(data->request->pool, RSTRING(name)->ptr, RSTRING(name)->len);
+    s = ap_pstrndup(data->request->pool, RSTRING_PTR(name), RSTRING_LEN(name));
     ap_hard_timeout(s, data->request);
 #endif
     return Qnil;
@@ -1240,7 +1242,7 @@ static VALUE request_soft_timeout(VALUE self, VALUE name)
 
     Check_Type(name, T_STRING);
     data = get_request_data(self);
-    s = apr_pstrndup(data->request->pool, RSTRING(name)->ptr, RSTRING(name)->len);
+    s = apr_pstrndup(data->request->pool, RSTRING_PTR(name), RSTRING_LEN(name));
     ap_soft_timeout(s, data->request);
     return Qnil;
 }
@@ -1388,8 +1390,8 @@ static VALUE request_set_user(VALUE self, VALUE val)
     Check_Type(val, T_STRING);
     data = get_request_data(self);
     data->request->user = apr_pstrndup(data->request->pool,
-				      RSTRING(val)->ptr,
-				      RSTRING(val)->len);
+				      RSTRING_PTR(val),
+				      RSTRING_LEN(val));
     return val;
 }
 #else /* Apache 1.x */
@@ -1482,8 +1484,8 @@ static VALUE request_set_auth_type(VALUE self, VALUE val)
     conf = (core_dir_config *)
 	ap_get_module_config(data->request->per_dir_config, &core_module);
     conf->ap_auth_type = apr_pstrndup(data->request->pool,
-				     RSTRING(val)->ptr,
-				     RSTRING(val)->len);
+				     RSTRING_PTR(val),
+				     RSTRING_LEN(val));
     ap_set_module_config(data->request->per_dir_config, &core_module, conf);
     return val;
 }
@@ -1514,8 +1516,8 @@ static VALUE request_set_auth_name(VALUE self, VALUE val)
     conf = (core_dir_config *)
 	ap_get_module_config(data->request->per_dir_config, &core_module);
     conf->ap_auth_name = apr_pstrndup(data->request->pool,
-				     RSTRING(val)->ptr,
-				     RSTRING(val)->len);
+				     RSTRING_PTR(val),
+				     RSTRING_LEN(val));
     ap_set_module_config(data->request->per_dir_config, &core_module, conf);
     return val;
 }
@@ -1550,7 +1552,7 @@ static VALUE request_bytes_sent(VALUE self)
 
 static VALUE request_send_fd(VALUE self, VALUE io)
 {
-    OpenFile *fptr;
+    rb_io_t *fptr;
     request_data *data;
 #ifdef APACHE2
     apr_size_t bytes_sent;
@@ -1570,7 +1572,7 @@ static VALUE request_send_fd(VALUE self, VALUE io)
     GetOpenFile(io, fptr);
 
 #ifdef APACHE2
-#if RUBY_VERSION_CODE >= 190
+#ifdef RUBY_VM
     fd = fptr->fd;
 #else
     fd = fileno(fptr->f);
@@ -1583,7 +1585,7 @@ static VALUE request_send_fd(VALUE self, VALUE io)
     }
     ap_send_fd(file, data->request, 0, st.st_size, &bytes_sent);
 #else
-#if RUBY_VERSION_CODE >= 190
+#ifdef RUBY_VM
     f = rb_io_stdio_file(fptr);
 #else
     f = fptr->f;
@@ -1803,7 +1805,11 @@ static VALUE request_uploads( VALUE self )
 
     if ( !data->apreq->parsed ) rb_funcall( self, rb_intern("parse"), 0 );
 
+#if RUBY_VM
+    if (!RHASH(data->upload_table)->ntbl->num_entries) {
+#else
     if (!RHASH(data->upload_table)->tbl->num_entries) {
+#endif
 	for ( upload = ApacheRequest_upload(data->apreq);
 	      upload;
 	      upload = upload->next )
@@ -1929,7 +1935,7 @@ static VALUE request_set_parse_option( VALUE pair, VALUE self )
     Check_Type( pair, T_ARRAY );
     if ( !RARRAY(pair)->len == 2 )
 	rb_raise( rb_eArgError, "Expected an array of 2 elements, not %d",
-		  RARRAY(pair)->len );
+		  (int) RARRAY(pair)->len );
 
     opt = rb_to_id( *(RARRAY(pair)->ptr) );
     optval = *(RARRAY(pair)->ptr + 1);
@@ -1950,8 +1956,9 @@ static VALUE request_set_parse_option( VALUE pair, VALUE self )
 	request_upload_hook_eq( self, optval );
     }
     else {
+	VALUE s = rb_inspect(*( RARRAY(pair)->ptr ));
 	rb_raise( rb_eArgError, "Unknown option %s",
-		  rb_inspect(*( RARRAY(pair)->ptr )) );
+		  StringValuePtr(s) );
     }
 
     return optval;
@@ -2073,7 +2080,11 @@ static VALUE request_cookies( VALUE self )
 
     if ( !data->apreq->parsed ) rb_funcall( self, rb_intern("parse"), 0 );
 
+#ifdef RUBY_VM
+    if ( ! RHASH(data->cookies)->ntbl->num_entries ) {
+#else
     if ( ! RHASH(data->cookies)->tbl->num_entries ) {
+#endif
 	ApacheCookieJar *jar = ApacheCookie_parse( data->request, NULL );
     int i;
 

@@ -84,7 +84,7 @@ def AC_WITH(package, action = Proc.new)
   end
 end
 
-require 'ftools'
+require 'fileutils'
 
 def AC_OUTPUT(*files)
   $DEFS ||= ""
@@ -97,7 +97,7 @@ def AC_OUTPUT(*files)
   for file in files
     print "creating ", file, "\n"
     open(File.join($srcdir, file + ".in")) do |fin|
-      File.makedirs(File.dirname(file))
+      FileUtils.mkdir_p(File.dirname(file))
       open(file, "w") do |fout|
 	depend = false
 	while line = fin.gets
@@ -187,6 +187,11 @@ def AC_CONFIG_AUX_DIRS(*dirs)
       end
     end
   end
+end
+
+begin
+  require "continuation"
+rescue LoadError
 end
 
 def AC_PROG_INSTALL
