@@ -72,7 +72,7 @@ MAJOR = @MAJOR@
 MINOR = @MINOR@
 TEENY = @TEENY@
 VERSION = $(MAJOR).$(MINOR).$(TEENY)
-SVNREPOS = file:///home/shugo/svn/mod_ruby
+SVNREPOS = https://projects.netlab.jp/svn/mod_ruby
 
 RUBYLIBS	= apache/ruby-run.rb \
 		  apache/registry.rb \

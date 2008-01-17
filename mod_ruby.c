@@ -638,7 +638,6 @@ static void ruby_startup(server_rec *s, pool *p)
 
 static void ruby_init_interpreter(server_rec *s)
 {
-    VALUE stack_start;
     ruby_server_config *conf = get_server_config(s);
     ruby_library_context *libraries;
     char **list;
@@ -657,6 +656,7 @@ static void ruby_init_interpreter(server_rec *s)
     void Init_prelude(void);
     RUBY_INIT_STACK;
 #else
+    VALUE stack_start;
     void Init_stack _((VALUE*));
 
     Init_stack(&stack_start);
