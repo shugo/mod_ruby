@@ -63,8 +63,6 @@ void rb_thread_start_timer_thread(void);
 #define rb_errinfo() ruby_errinfo
 #define rb_sourcefile() ruby_sourcefile
 #define rb_sourceline() ruby_sourceline
-#define rb_thread_start_timer_thread() rb_thread_start_timer()
-#define rb_thread_stop_timer_thread() rb_thread_stop_timer()
 typedef OpenFile rb_io_t;
 
 #endif
@@ -200,7 +198,7 @@ typedef apr_table_entry_t table_entry;
 #include "apache_multipart_buffer.h"
 #include "apache_cookie.h"
 
-#define MOD_RUBY_STRING_VERSION "mod_ruby/1.2.6"
+#define MOD_RUBY_STRING_VERSION "mod_ruby/1.3.0"
 #define RUBY_GATEWAY_INTERFACE "CGI-Ruby/1.1"
 
 typedef struct {

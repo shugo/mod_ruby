@@ -653,8 +653,14 @@ static void ruby_init_interpreter(server_rec *s)
 #ifdef SIGTERM
     RETSIGTYPE (*sigterm_handler)_((int));
 #endif
+#ifdef RUBY_VM
+    void Init_prelude(void);
+    RUBY_INIT_STACK;
+#else
     void Init_stack _((VALUE*));
 
+    Init_stack(&stack_start);
+#endif
 #ifdef SIGHUP
     sighup_handler = signal(SIGHUP, SIG_DFL);
 #endif
@@ -677,8 +683,6 @@ static void ruby_init_interpreter(server_rec *s)
     if (sigterm_handler != SIG_ERR)
 	ruby_signal(SIGTERM, sigterm_handler);
 #endif
-
-    Init_stack(&stack_start);
     rb_init_apache();
 
     rb_define_global_const("MOD_RUBY",
@@ -694,6 +698,9 @@ static void ruby_init_interpreter(server_rec *s)
 #endif
 
     ruby_init_loadpath();
+#ifdef RUBY_VM
+    Init_prelude();
+#endif
     default_load_path = rb_load_path;
     rb_global_variable(&default_load_path);
     list = (char **) conf->load_path->elts;
@@ -1039,11 +1046,13 @@ static VALUE run_safely_0(VALUE arg)
     VALUE result;
 
     rb_set_safe_level(rsarg->safe_level);
+#ifndef RUBY_VM /* TODO */
     if (rsarg->timeout > 0) {
 	targ.thread = rb_thread_current();
 	targ.timeout = rsarg->timeout;
 	timeout_thread = rb_thread_create(do_timeout, (void *) &targ);
     }
+#endif
     result = (*rsarg->func)(rsarg->arg);
     if (!NIL_P(timeout_thread))
 	rb_protect_funcall(timeout_thread, rb_intern("kill"), NULL, 0);
@@ -1061,19 +1070,23 @@ static int run_safely(int safe_level, int timeout,
     rsarg.timeout = timeout;
     rsarg.func = func;
     rsarg.arg = arg;
-#if defined(HAVE_SETITIMER)
-    rb_thread_start_timer_thread();
+#if !defined(RUBY_VM) && defined(HAVE_SETITIMER)
+    rb_thread_start_timer();
 #endif
+#ifndef RUBY_VM /* TODO */
     if (safe_level > rb_safe_level()) {
 	thread = rb_thread_create(run_safely_0, &rsarg);
 	ret = rb_protect_funcall(thread, rb_intern("value"), &state, 0);
     }
     else {
+#endif
 	ret = rb_protect(run_safely_0, (VALUE) &rsarg, &state);
+#ifndef RUBY_VM /* TODO */
     }
+#endif
     rb_protect(kill_threads, Qnil, NULL);
-#if defined(HAVE_SETITIMER)
-    rb_thread_stop_timer_thread();
+#if !defined(RUBY_VM) && defined(HAVE_SETITIMER)
+    rb_thread_stop_timer();
 #endif
     if (retval)
 	*retval = ret;
