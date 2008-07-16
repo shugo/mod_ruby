@@ -63,7 +63,9 @@ void rb_thread_start_timer_thread(void);
 #define rb_errinfo() ruby_errinfo
 #define rb_sourcefile() ruby_sourcefile
 #define rb_sourceline() ruby_sourceline
+#ifndef HAVE_RB_IO_T
 typedef OpenFile rb_io_t;
+#endif
 
 #endif
 
