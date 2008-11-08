@@ -551,8 +551,6 @@ void mod_ruby_setup_loadpath(ruby_server_config *sconf,
     char **paths;
     VALUE load_path = GET_LOAD_PATH();
 
-#ifndef RUBY_VM
-/* FIXME: how to set $: on 1.9? */
     rb_ary_clear(load_path);
     for (i = 0; i < RARRAY_LEN(default_load_path); i++) {
 	rb_ary_push(load_path, rb_str_dup(RARRAY_PTR(default_load_path)[i]));
@@ -571,7 +569,6 @@ void mod_ruby_setup_loadpath(ruby_server_config *sconf,
 	    rb_ary_push(load_path, rb_str_new2(paths[i]));
 	}
     }
-#endif
 }
 
 static int ruby_require_directly(const char *filename,
