@@ -31,14 +31,11 @@
 #define MOD_RUBY_H
 
 #include "ruby.h"
-#include "rubyio.h"
 
 #ifdef RUBY_VM
 
-#if 0
-#include "ruby/version.h"
-#endif
 #define RUBY_VERSION_CODE 190
+#include "ruby/io.h"
 #include "ruby/util.h"
 #include "ruby/intern.h"
 
@@ -48,24 +45,43 @@ void rb_thread_start_timer_thread(void);
 #define rb_get_kcode() NULL
 #define rb_set_kcode(code)
 
+#define IO_PATH(fptr) (StringValuePtr(fptr->pathv))
+
+VALUE rb_get_load_path(void);
+#define GET_LOAD_PATH() (rb_get_load_path())
+#define SET_LOAD_PATH(path) (rb_gv_set("$:", path))
+
 #else
 
 #include "version.h"
+#include "rubyio.h"
 #include "util.h"
 #include "intern.h"
 
 #ifndef RSTRING_PTR
-#define RSTRING_PTR(s) RSTRING(s)->ptr
+#define RSTRING_PTR(s) (RSTRING(s)->ptr)
 #endif
 #ifndef RSTRING_LEN
-#define RSTRING_LEN(s) RSTRING(s)->len
+#define RSTRING_LEN(s) (RSTRING(s)->len)
 #endif
+#ifndef RARRAY_PTR
+#define RARRAY_PTR(s) (RARRAY(s)->ptr)
+#endif
+#ifndef RARRAY_LEN
+#define RARRAY_LEN(s) (RARRAY(s)->len)
+#endif
+
 #define rb_errinfo() ruby_errinfo
 #define rb_sourcefile() ruby_sourcefile
 #define rb_sourceline() ruby_sourceline
 #ifndef HAVE_RB_IO_T
 typedef OpenFile rb_io_t;
 #endif
+#define IO_PATH(fptr) (fptr->path)
+
+RUBY_EXTERN VALUE rb_load_path;
+#define GET_LOAD_PATH() (rb_load_path)
+#define SET_LOAD_PATH(path) (rb_load_path = path)
 
 #endif
 

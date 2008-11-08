@@ -320,6 +320,9 @@ if CFLAGS.index(CONFIG["CCDLFLAGS"])
 else
   $CFLAGS = CFLAGS + " " + CONFIG["CCDLFLAGS"]
 end
+$cflags = CONFIG["cflags"]
+$optflags = CONFIG["optflags"]
+$debugflags = CONFIG["debugflags"]
 $LDFLAGS = CONFIG["LDFLAGS"]
 if $LDFLAGS.to_s.empty? && /mswin32/ =~ RUBY_PLATFORM
   $LDFLAGS = "-link -incremental:no -pdb:none"
@@ -406,6 +409,9 @@ AC_SUBST("RUBY")
 AC_SUBST("RM")
 
 AC_SUBST("CFLAGS")
+AC_SUBST("cflags")
+AC_SUBST("optflags")
+AC_SUBST("debugflags")
 AC_SUBST("DEFS")
 AC_SUBST("LDFLAGS")
 AC_SUBST("LIBS")

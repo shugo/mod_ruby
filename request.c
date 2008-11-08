@@ -435,8 +435,8 @@ static VALUE request_puts_ary(VALUE ary, VALUE out)
     VALUE tmp;
     int i;
 
-    for (i=0; i<RARRAY(ary)->len; i++) {
-	tmp = RARRAY(ary)->ptr[i];
+    for (i=0; i<RARRAY_LEN(ary); i++) {
+	tmp = RARRAY_PTR(ary)[i];
 #ifdef RUBY_VM
 	if (recur) {
 #else
@@ -714,13 +714,13 @@ static VALUE request_set_content_languages(VALUE self, VALUE ary)
     }
     else {
 	Check_Type(ary, T_ARRAY);
-	for (i = 0; i < RARRAY(ary)->len; i++) {
-	    Check_Type(RARRAY(ary)->ptr[i], T_STRING);
+	for (i = 0; i < RARRAY_LEN(ary); i++) {
+	    Check_Type(RARRAY_PTR(ary)[i], T_STRING);
 	}
 	data->request->content_languages =
-	    apr_array_make(data->request->pool, RARRAY(ary)->len, sizeof(char *));
-	for (i = 0; i < RARRAY(ary)->len; i++) {
-	    VALUE str = RARRAY(ary)->ptr[i];
+	    apr_array_make(data->request->pool, RARRAY_LEN(ary), sizeof(char *));
+	for (i = 0; i < RARRAY_LEN(ary); i++) {
+	    VALUE str = RARRAY_PTR(ary)[i];
 	    *(char **) apr_array_push(data->request->content_languages) =
 		apr_pstrndup(data->request->pool,
 			    RSTRING_PTR(str),
@@ -1581,7 +1581,7 @@ static VALUE request_send_fd(VALUE self, VALUE io)
 	rb_raise(rb_eIOError, "apr_os_file_put() failed");
     }
     if (fstat(fd, &st) == -1) {
-	rb_sys_fail(fptr->path);
+	rb_sys_fail(IO_PATH(fptr));
     }
     ap_send_fd(file, data->request, 0, st.st_size, &bytes_sent);
 #else
@@ -1933,12 +1933,12 @@ static VALUE request_set_parse_option( VALUE pair, VALUE self )
     VALUE optval;
 
     Check_Type( pair, T_ARRAY );
-    if ( !RARRAY(pair)->len == 2 )
+    if ( !RARRAY_LEN(pair) == 2 )
 	rb_raise( rb_eArgError, "Expected an array of 2 elements, not %d",
-		  (int) RARRAY(pair)->len );
+		  (int) RARRAY_LEN(pair) );
 
-    opt = rb_to_id( *(RARRAY(pair)->ptr) );
-    optval = *(RARRAY(pair)->ptr + 1);
+    opt = rb_to_id( *(RARRAY_PTR(pair)) );
+    optval = *(RARRAY_PTR(pair) + 1);
 
     if ( opt == id_post_max ) {
 	request_post_max_eq( self, optval );
@@ -1956,7 +1956,7 @@ static VALUE request_set_parse_option( VALUE pair, VALUE self )
 	request_upload_hook_eq( self, optval );
     }
     else {
-	VALUE s = rb_inspect(*( RARRAY(pair)->ptr ));
+	VALUE s = rb_inspect(*( RARRAY_PTR(pair) ));
 	rb_raise( rb_eArgError, "Unknown option %s",
 		  StringValuePtr(s) );
     }

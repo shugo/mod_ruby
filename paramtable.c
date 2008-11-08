@@ -150,8 +150,8 @@ static VALUE paramtable_set( VALUE self, VALUE name, VALUE val )
         int i;
 		
         apr_table_unset( tbl, key );
-        for ( i = 0; i < RARRAY(ary)->len; i++ ) {
-            str = rb_check_convert_type( *(RARRAY(ary)->ptr+i), T_STRING,
+        for ( i = 0; i < RARRAY_LEN(ary); i++ ) {
+            str = rb_check_convert_type( *(RARRAY_PTR(ary)+i), T_STRING,
                                          "String", "to_str" );
             apr_table_add( tbl, key, StringValuePtr(str) );
         }

@@ -94,10 +94,9 @@ static VALUE orig_stdout;
 static VALUE orig_defout;
 #endif
 
-RUBY_EXTERN VALUE rb_load_path;
 static VALUE default_load_path;
 
-RUBY_EXTERN VALUE rb_progname;
+static VALUE progname;
 
 static const char *default_kcode;
 
@@ -373,7 +372,7 @@ static void get_exception_info(VALUE str)
 
     errat = rb_funcall(rb_errinfo(), rb_intern("backtrace"), 0);
     if (!NIL_P(errat)) {
-	VALUE mesg = RARRAY(errat)->ptr[0];
+	VALUE mesg = RARRAY_PTR(errat)[0];
 
 	if (NIL_P(mesg)) {
 	    get_error_pos(str);
@@ -430,18 +429,18 @@ static void get_exception_info(VALUE str)
 
     if (!NIL_P(errat)) {
 	long i, len;
-	struct RArray *ep;
+	VALUE *ep;
 
 #define TRACE_MAX (TRACE_HEAD+TRACE_TAIL+5)
 #define TRACE_HEAD 8
 #define TRACE_TAIL 5
 
-	ep = RARRAY(errat);
-	len = ep->len;
+	ep = RARRAY_PTR(errat);
+	len = RARRAY_LEN(errat);
 	for (i=1; i<len; i++) {
-	    if (TYPE(ep->ptr[i]) == T_STRING) {
+	    if (TYPE(ep[i]) == T_STRING) {
 		STR_CAT_LITERAL(str, "  from ");
-		rb_str_cat(str, RSTRING_PTR(ep->ptr[i]), RSTRING_LEN(ep->ptr[i]));
+		rb_str_cat(str, RSTRING_PTR(ep[i]), RSTRING_LEN(ep[i]));
 		STR_CAT_LITERAL(str, "\n");
 	    }
 	    if (i == TRACE_HEAD && len > TRACE_MAX) {
@@ -519,9 +518,9 @@ void ruby_log_error_string(server_rec *s, VALUE errmsg)
 
     ruby_log_error(APLOG_MARK, APLOG_ERR | APLOG_NOERRNO, s, "error in ruby");
     msgs = rb_str_split(errmsg, "\n");
-    for (i = 0; i < RARRAY(msgs)->len; i++) {
+    for (i = 0; i < RARRAY_LEN(msgs); i++) {
         ruby_log_error(APLOG_MARK, APLOG_ERR | APLOG_NOERRNO, s,
-                       "%s", StringValuePtr(RARRAY(msgs)->ptr[i]));
+                       "%s", StringValuePtr(RARRAY_PTR(msgs)[i]));
     }
 }
 
@@ -550,25 +549,29 @@ void mod_ruby_setup_loadpath(ruby_server_config *sconf,
 {
     int i, n;
     char **paths;
+    VALUE load_path = GET_LOAD_PATH();
 
-    rb_load_path = rb_ary_new();
-    for (i = 0; i < RARRAY(default_load_path)->len; i++) {
-	rb_ary_push(rb_load_path, rb_str_dup(RARRAY(default_load_path)->ptr[i]));
+#ifndef RUBY_VM
+/* FIXME: how to set $: on 1.9? */
+    rb_ary_clear(load_path);
+    for (i = 0; i < RARRAY_LEN(default_load_path); i++) {
+	rb_ary_push(load_path, rb_str_dup(RARRAY_PTR(default_load_path)[i]));
     }
     if (sconf && sconf->load_path) {
 	paths = (char **) sconf->load_path->elts;
 	n = sconf->load_path->nelts;
 	for (i = 0; i < n; i++) {
-	    rb_ary_push(rb_load_path, rb_str_new2(paths[i]));
+	    rb_ary_push(load_path, rb_str_new2(paths[i]));
 	}
     }
     if (dconf && dconf->load_path) {
 	paths = (char **) dconf->load_path->elts;
 	n = dconf->load_path->nelts;
 	for (i = 0; i < n; i++) {
-	    rb_ary_push(rb_load_path, rb_str_new2(paths[i]));
+	    rb_ary_push(load_path, rb_str_new2(paths[i]));
 	}
     }
+#endif
 }
 
 static int ruby_require_directly(const char *filename,
@@ -701,8 +704,9 @@ static void ruby_init_interpreter(server_rec *s)
 #ifdef RUBY_VM
     Init_prelude();
 #endif
-    default_load_path = rb_load_path;
+    default_load_path = GET_LOAD_PATH();
     rb_global_variable(&default_load_path);
+    rb_define_variable("$0", &progname);
     list = (char **) conf->load_path->elts;
     n = conf->load_path->nelts;
     for (i = 0; i < n; i++) {
@@ -747,8 +751,8 @@ static void ruby_finalize_interpreter()
     int i;
 
     ruby_finalize();
-    for (i = 0; i < RARRAY(ruby_dln_librefs)->len; i++) {
-	dso_unload((void *) NUM2LONG(RARRAY(ruby_dln_librefs)->ptr[i]));
+    for (i = 0; i < RARRAY_LEN(ruby_dln_librefs); i++) {
+	dso_unload((void *) NUM2LONG(RARRAY_PTR(ruby_dln_librefs)[i]));
     }
 }
 
@@ -1006,8 +1010,8 @@ static VALUE kill_threads(VALUE arg)
     VALUE th;
     int i;
 
-    for (i = 0; i < RARRAY(threads)->len; i++) {
-	th = RARRAY(threads)->ptr[i];
+    for (i = 0; i < RARRAY_LEN(threads); i++) {
+	th = RARRAY_PTR(threads)[i];
 	if (th != main_thread)
 	    rb_protect_funcall(th, rb_intern("kill"), NULL, 0);
     }
@@ -1157,7 +1161,7 @@ static void per_request_init(request_rec *r)
     rb_defout = rb_request;
 #endif
     if (r->filename)
-	rb_progname = rb_tainted_str_new2(r->filename);
+	progname = rb_tainted_str_new2(r->filename);
 }
 
 static VALUE exec_end_proc(VALUE arg)
@@ -1200,7 +1204,7 @@ static void per_request_cleanup(request_rec *r, int flush)
 	if (rconf)
 	    restore_env(r->pool, rconf->saved_env);
     }
-    rb_progname = Qnil;
+    progname = Qnil;
     if (dconf && dconf->gc_per_request)
 	rb_gc();
 }

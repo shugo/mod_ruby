@@ -32,6 +32,9 @@ RUBY = @RUBY@
 RM = @RM@
 
 CFLAGS = @CFLAGS@ -I. -I$(hdrdir) -I$(hdrdir)/$(arch) $(APACHE_INCLUDES) $(LIBAPREQ_INCLUDES) @DEFS@
+cflags = @cflags@
+optflags = @optflags@
+debugflags = @debugflags@
 COUTFLAG = -o
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@

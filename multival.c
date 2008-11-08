@@ -129,17 +129,17 @@ multival_init( VALUE self, VALUE args )
     long len, i;
 
     /* Make sure there's at least one argument to work with */
-    if ( RARRAY(args)->len == 0 )
+    if ( RARRAY_LEN(args) == 0 )
         rb_ary_push( args, rb_tainted_str_new("", 0) );
 
     /* Stringify all arguments */
-    len = RARRAY(args)->len;
+    len = RARRAY_LEN(args);
     collect = rb_ary_new2(len);
     for ( i = 0; i < len; i++ ) {
         VALUE str;
 		
-        str = rb_str_dup( rb_obj_as_string(RARRAY(args)->ptr[i]) );
-        OBJ_INFECT( str, RARRAY(args)->ptr[i] );
+        str = rb_str_dup( rb_obj_as_string(RARRAY_PTR(args)[i]) );
+        OBJ_INFECT( str, RARRAY_PTR(args)[i] );
 		
         rb_ary_push( collect, str );
     }
@@ -198,7 +198,7 @@ multival_compare( VALUE self, VALUE other )
 }
 
 
-
+#if 0
 /*
  * Delegate the current method to the stringish version of the multival (ie.,
  * the first element of the array).
@@ -209,7 +209,7 @@ multival_string_delegator( int argc, VALUE *argv, VALUE self )
     ID meth = rb_frame_this_func();
     VALUE args = rb_iv_get( self, "@args" );
 	
-    return rb_funcall2( RARRAY(args)->ptr[0], meth, argc, argv );
+    return rb_funcall2( RARRAY_PTR(args)[0], meth, argc, argv );
 }
 
 
@@ -241,6 +241,7 @@ multival_make_delegator( VALUE name, ID which )
 	
     return Qtrue;
 }
+#endif
 
 
 /* Module initializer */

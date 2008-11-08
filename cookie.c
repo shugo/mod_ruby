@@ -184,10 +184,10 @@ static VALUE cookie_value_eq( VALUE self, VALUE newval )
     }
 
     ApacheCookieItems(cookie) = 0;
-    for ( i = 0; i < RARRAY(items)->len; i++ ) {
+    for ( i = 0; i < RARRAY_LEN(items); i++ ) {
         ApacheCookieAddLen( cookie,
-                            RSTRING_PTR(*(RARRAY(items)->ptr + i)),
-                            RSTRING_LEN(*(RARRAY(items)->ptr + i)) );
+                            RSTRING_PTR(*(RARRAY_PTR(items) + i)),
+                            RSTRING_LEN(*(RARRAY_PTR(items) + i)) );
     }
 
     return items;
@@ -327,14 +327,14 @@ static VALUE cookie_set_attr( VALUE pair, VALUE self )
 
     /* Make sure the argument's an Array. */
     Check_Type( pair, T_ARRAY );
-    if ( !RARRAY(pair)->len == 2 )
+    if ( !RARRAY_LEN(pair) == 2 )
         rb_raise( rb_eArgError, "Expected an array of 2 elements, not %d",
-                  (int) RARRAY(pair)->len );
+                  (int) RARRAY_LEN(pair) );
 
     /* Pick the attr name (converted to an ID) and value out of the iterator
        pair. */
-    attr = rb_to_id( *(RARRAY(pair)->ptr) );
-    val = *(RARRAY(pair)->ptr + 1);
+    attr = rb_to_id( *(RARRAY_PTR(pair)) );
+    val = *(RARRAY_PTR(pair) + 1);
 
     /* Set the option specified. */
     if ( attr == id_name ) {
@@ -356,7 +356,7 @@ static VALUE cookie_set_attr( VALUE pair, VALUE self )
         cookie_secure_eq( self, val );
     }
     else {
-	VALUE s = rb_inspect(*( RARRAY(pair)->ptr ));
+	VALUE s = rb_inspect(*( RARRAY_PTR(pair) ));
         rb_raise( rb_eArgError, "Unknown attribute %s",
                   StringValuePtr(s) );
     }
