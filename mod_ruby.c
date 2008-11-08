@@ -549,9 +549,14 @@ void mod_ruby_setup_loadpath(ruby_server_config *sconf,
 {
     int i, n;
     char **paths;
-    VALUE load_path = GET_LOAD_PATH();
+    VALUE load_path;
 
+#ifdef RUBY_VM
+    load_path = GET_LOAD_PATH();
     rb_ary_clear(load_path);
+#else
+    rb_load_path = load_path = rb_ary_new();
+#endif
     for (i = 0; i < RARRAY_LEN(default_load_path); i++) {
 	rb_ary_push(load_path, rb_str_dup(RARRAY_PTR(default_load_path)[i]));
     }
