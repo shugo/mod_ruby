@@ -706,7 +706,7 @@ static void ruby_init_interpreter(server_rec *s)
 #ifdef RUBY_VM
     Init_prelude();
 #endif
-    default_load_path = GET_LOAD_PATH();
+    default_load_path = rb_ary_dup(GET_LOAD_PATH());
     rb_global_variable(&default_load_path);
     rb_define_variable("$0", &progname);
     list = (char **) conf->load_path->elts;

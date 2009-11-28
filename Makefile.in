@@ -16,6 +16,7 @@ exec_prefix = @exec_prefix@
 bindir = @bindir@
 datadir = @datadir@
 libdir = @libdir@
+rubylibprefix = @rubylibprefix@
 rubylibdir = @rubylibdir@
 archdir = @archdir@
 sitedir = @sitedir@
@@ -29,6 +30,7 @@ AR = @AR@
 LD = @LD@
 RANLIB = @RANLIB@
 RUBY = @RUBY@
+RUBY_BASE_NAME = @RUBY_BASE_NAME@
 RM = @RM@
 
 CFLAGS = @CFLAGS@ -I. -I$(hdrdir) -I$(hdrdir)/$(arch) $(APACHE_INCLUDES) $(LIBAPREQ_INCLUDES) @DEFS@

@@ -62,7 +62,7 @@ module Apache
 	r.allowed |= (1 << M_POST)
 	return DECLINED
       end
-      if r.finfo.mode == 0
+      if r.finfo.nil? || r.finfo.mode == 0
 	return NOT_FOUND
       end
       if r.allow_options & OPT_EXECCGI == 0
@@ -80,6 +80,7 @@ module Apache
       r.setup_cgi_env
       filename = r.filename.dup
       filename.untaint
+      filename.freeze # to avoid SecurityError in 1.9
       Apache.chdir_file(filename)
       return filename
     end

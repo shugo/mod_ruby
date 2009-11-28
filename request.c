@@ -788,7 +788,7 @@ static VALUE request_notes(VALUE self)
     return data->notes;
 }
 
-#ifdef APACHE2
+#if defined(APACHE2) && !defined(RUBY_VM)
 
 #ifdef WIN32
 typedef int mode_t;
@@ -859,12 +859,17 @@ static mode_t get_mode(apr_finfo_t *finfo)
 
 static VALUE request_finfo(VALUE self)
 {
-    VALUE cStat;
     request_data *data;
-    struct stat *st;
 
     data = get_request_data(self);
     if (NIL_P(data->finfo)) {
+#ifdef RUBY_VM
+	data->finfo = rb_protect_funcall(rb_cFile, rb_intern("stat"), NULL, 1,
+					 rb_str_new2(data->request->filename));
+#else
+	VALUE cStat;
+	struct stat *st;
+
 	cStat = rb_const_get(rb_cFile, rb_intern("Stat"));
 	data->finfo = Data_Make_Struct(cStat, struct stat, NULL, free, st);
 #ifdef APACHE2
@@ -883,6 +888,7 @@ static VALUE request_finfo(VALUE self)
 	}
 #else /* Apache 1.x */
 	*st = data->request->finfo;
+#endif
 #endif
     }
     return data->finfo;

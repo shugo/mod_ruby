@@ -97,7 +97,7 @@ module Apache
 	r.allowed |= (1 << M_POST)
 	return DECLINED
       end
-      if r.finfo.mode == 0
+      if r.finfo.nil? || r.finfo.mode == 0
 	return NOT_FOUND
       end
 
