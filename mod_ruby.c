@@ -702,12 +702,14 @@ static void ruby_init_interpreter(server_rec *s)
 #endif
 
     ruby_init_loadpath();
-#ifdef RUBY_VM
-    ruby_init_prelude();
-#endif
+    {
+	char *argv[] = { "ruby", "-e", "" };
+	ruby_options(3, argv);
+    }
     default_load_path = rb_ary_dup(GET_LOAD_PATH());
     rb_global_variable(&default_load_path);
     rb_define_variable("$0", &progname);
+    rb_define_variable("$PROGRAM_NAME", &progname);
     list = (char **) conf->load_path->elts;
     n = conf->load_path->nelts;
     for (i = 0; i < n; i++) {
