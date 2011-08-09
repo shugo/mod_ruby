@@ -47,8 +47,7 @@ void rb_thread_start_timer_thread(void);
 
 #define IO_PATH(fptr) (StringValuePtr(fptr->pathv))
 
-VALUE rb_get_load_path(void);
-#define GET_LOAD_PATH() (rb_get_load_path())
+#define GET_LOAD_PATH() (rb_gv_get("$:"))
 #define SET_LOAD_PATH(path) (rb_gv_set("$:", path))
 
 #else

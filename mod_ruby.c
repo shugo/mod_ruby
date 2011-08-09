@@ -658,7 +658,6 @@ static void ruby_init_interpreter(server_rec *s)
     RETSIGTYPE (*sigterm_handler)_((int));
 #endif
 #ifdef RUBY_VM
-    void Init_prelude(void);
     RUBY_INIT_STACK;
 #else
     VALUE stack_start;
@@ -704,7 +703,7 @@ static void ruby_init_interpreter(server_rec *s)
 
     ruby_init_loadpath();
 #ifdef RUBY_VM
-    Init_prelude();
+    ruby_init_prelude();
 #endif
     default_load_path = rb_ary_dup(GET_LOAD_PATH());
     rb_global_variable(&default_load_path);
@@ -734,6 +733,7 @@ static void ruby_init_interpreter(server_rec *s)
     }
 }
 
+#ifndef RUBY_VM
 static void dso_unload(void *handle)
 {
 #if defined(_WIN32)
@@ -747,15 +747,23 @@ static void dso_unload(void *handle)
 #endif
 }
 
-static void ruby_finalize_interpreter()
+static void ruby_unload_libraries()
 {
     RUBY_EXTERN VALUE ruby_dln_librefs;
     int i;
 
-    ruby_finalize();
     for (i = 0; i < RARRAY_LEN(ruby_dln_librefs); i++) {
 	dso_unload((void *) NUM2LONG(RARRAY_PTR(ruby_dln_librefs)[i]));
     }
+}
+#endif
+
+static void ruby_finalize_interpreter()
+{
+    ruby_finalize();
+#ifndef RUBY_VM
+    ruby_unload_libraries();
+#endif
 }
 
 #if APR_HAS_THREADS
@@ -1006,8 +1014,7 @@ void rb_setup_cgi_env(request_rec *r)
 
 static VALUE kill_threads(VALUE arg)
 {
-    extern VALUE rb_thread_list();
-    VALUE threads = rb_thread_list();
+    VALUE threads = rb_protect_funcall(rb_cThread, rb_intern("list"), NULL, 0);
     VALUE main_thread = rb_thread_main();
     VALUE th;
     int i;
