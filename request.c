@@ -345,6 +345,12 @@ static VALUE request_set_sync(VALUE self, VALUE val)
     return val;
 }
 
+static VALUE request_flush(VALUE self)
+{
+    rb_apache_request_flush(self);
+    return self;
+}
+
 static VALUE request_write(VALUE self, VALUE str)
 {
     request_data *data;
@@ -2139,6 +2145,7 @@ void rb_init_apache_request()
 		     request_set_sync_output, 1);
     rb_define_method(rb_cApacheRequest, "sync=",
 		     request_set_sync, 1);
+    rb_define_method(rb_cApacheRequest, "flush", request_flush, 0);
     rb_define_method(rb_cApacheRequest, "write", request_write, 1);
     rb_define_method(rb_cApacheRequest, "putc", request_putc, 1);
     rb_define_method(rb_cApacheRequest, "print", request_print, -1);
