@@ -1771,7 +1771,11 @@ static VALUE request_register_cleanup(int argc, VALUE *argv, VALUE self)
     data = get_request_data(self);
     rb_scan_args(argc, argv, "02", &plain_cleanup, &child_cleanup);
     if (argc == 0)
+#if RUBY_VM || RUBY_RELEASE_CODE > 20030616
+	plain_cleanup = rb_block_lambda();
+#else
 	plain_cleanup = rb_f_lambda();
+#endif
     if (NIL_P(plain_cleanup))
 	plain_cleanup_func = apr_pool_cleanup_null;
     else
