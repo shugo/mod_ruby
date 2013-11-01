@@ -604,9 +604,13 @@ static void ruby_add_path(const char *path)
 static int ruby_startup(pool *p, pool *plog, pool *ptemp, server_rec *s)
 {
     ap_add_version_component(p, MOD_RUBY_STRING_VERSION);
-#if RUBY_RELEASE_CODE > 20040624
+#if RUBY_VM || RUBY_RELEASE_CODE > 20040624
     {
         char *version = apr_pstrcat(p, "Ruby/", ruby_version,
+#if HAVE_RUBY_VERSION_H
+                                    apr_psprintf(ptemp, "p%d",
+                                                 ruby_patchlevel),
+#endif
                                     "(", ruby_release_date, ")",
 				    (char *) NULL);
         ap_add_version_component(p, version);
