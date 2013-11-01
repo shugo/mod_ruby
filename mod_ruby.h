@@ -38,6 +38,9 @@
 #include "ruby/io.h"
 #include "ruby/util.h"
 #include "ruby/intern.h"
+#ifdef HAVE_RUBY_VERSION_H
+#include "ruby/version.h"
+#endif
 
 void rb_thread_stop_timer_thread(void);
 void rb_thread_start_timer_thread(void);
